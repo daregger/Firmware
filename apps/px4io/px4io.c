@@ -66,8 +66,9 @@ static struct hrt_call serial_dma_call;
 // global debug level for isr_debug()
 volatile uint8_t debug_level = 0;
 
-volatile uint32_t i2c_resets = 0;
 volatile uint32_t i2c_loop_resets = 0;
+
+struct hrt_call loop_overtime_call;
 
 
 /*
@@ -112,6 +113,19 @@ static void show_debug_messages(void)
 	}
 }
 
+/*
+  catch I2C lockups
+ */
+static void loop_overtime(void *arg)
+{
+	lib_lowprintf("RESETTING\n");
+	i2c_loop_resets++;
+	i2c_dump();
+	i2c_reset();
+	hrt_call_after(&loop_overtime_call, 100000, (hrt_callout)loop_overtime, NULL);
+}
+
+
 int user_start(int argc, char *argv[])
 {
 	/* run C++ ctors before we go any further */
@@ -153,7 +167,6 @@ int user_start(int argc, char *argv[])
 		    (main_t)controls_main,
 		    NULL);
 
-
 	struct mallinfo minfo = mallinfo();
 	lowsyslog("free %u largest %u\n", minfo.mxordblk, minfo.fordblks);
 
@@ -166,9 +179,23 @@ int user_start(int argc, char *argv[])
 	/* run the mixer at 100Hz (for now...) */
 	/* XXX we should use CONFIG_IDLE_CUSTOM and take over the idle thread instead of running two additional tasks */
 	for (;;) {
+		/*
+		  if we are not scheduled for 100ms then reset the I2C bus
+		 */
+		hrt_call_after(&loop_overtime_call, 100000, (hrt_callout)loop_overtime, NULL);
+
 		poll(NULL, 0, 10);
 		perf_begin(mixer_perf);
 		mixer_tick();
 		perf_end(mixer_perf);
+
+		show_debug_messages();
+		if (counter++ == 200) {
+			counter = 0;
+			isr_debug(0, "tick debug=%u status=0x%x resets=%u", 
+				  (unsigned)debug_level,
+				  (unsigned)r_status_flags,
+				  (unsigned)i2c_loop_resets);
+		}
 	}
 }

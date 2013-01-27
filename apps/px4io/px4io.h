@@ -180,3 +180,12 @@ extern bool	sbus_input(uint16_t *values, uint16_t *num_values);
 // global debug level for isr_debug()
 extern volatile uint8_t debug_level;
 
+// send a debug message to the console
+extern void isr_debug(uint8_t level, const char *fmt, ...);
+
+void i2c_dump(void);
+void i2c_reset(void);
+extern volatile uint32_t i2c_loop_resets;
+
+
+
