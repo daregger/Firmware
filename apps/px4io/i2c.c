@@ -44,7 +44,7 @@
 #include <stm32_i2c.h>
 #include <stm32_dma.h>
 
-//#define DEBUG
+#define DEBUG
 #include "px4io.h"
 
 /*
@@ -227,7 +227,13 @@ i2c_rx_setup(void)
 static void
 i2c_rx_complete(void)
 {
-	rx_len = sizeof(rx_buf) - stm32_dmaresidual(rx_dma);
+	//rx_len = sizeof(rx_buf) - stm32_dmaresidual(rx_dma);
+	rx_len = sizeof(rx_buf) - (stm32_dmaresidual(rx_dma) % 64);
+	//if (rx_buf[0] == PX4IO_PAGE_MIXERLOAD) {
+	//    debug("rx_len %d buff %d dma %d", rx_len, sizeof(rx_buf), stm32_dmaresidual(rx_dma));
+	//	debug(">> %s", (const uint16_t *)&rx_buf[2]);
+	//}
+	
 	stm32_dmastop(rx_dma);
 
 	if (rx_len >= 2) {
@@ -237,6 +243,8 @@ i2c_rx_complete(void)
 		/* work out how many registers are being written */
 		unsigned count = (rx_len - 2) / 2;
 		if (count > 0) {
+			//if (rx_buf[0] == PX4IO_PAGE_MIXERLOAD)
+			//	debug("*MIXER CALL");
 			registers_set(selected_page, selected_offset, (const uint16_t *)&rx_buf[2], count);
 		} else {
 			/* no registers written, must be an address cycle */

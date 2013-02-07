@@ -916,24 +916,28 @@ PX4IO::io_reg_modify(uint8_t page, uint8_t offset, uint16_t clearbits, uint16_t 
 int
 PX4IO::mixer_send(const char *buf, unsigned buflen)
 {
+	log(">> %s", buf);
 	uint8_t	frame[_max_transfer];
 	px4io_mixdata *msg = (px4io_mixdata *)&frame[0];
 	unsigned max_len = _max_transfer - sizeof(px4io_mixdata);
 
 	msg->f2i_mixer_magic = F2I_MIXER_MAGIC;
 	msg->action = F2I_MIXER_ACTION_RESET;
-
+	debug("### MIX buflen: %d", buflen);
 	do {
 		unsigned count = buflen;
 
 		if (count > max_len)
 			count = max_len;
 
+		debug("COUNT: %d", count);
 		if (count > 0) {
 			memcpy(&msg->text[0], buf, count);
+			debug("<< count %d text %s", count, frame);
 			buf += count;
 			buflen -= count;
 		}
+		debug("MSG: %s", msg->text);
 
 		/*
 		 * We have to send an even number of bytes.  This
@@ -948,15 +952,16 @@ PX4IO::mixer_send(const char *buf, unsigned buflen)
 			total_len++;
 		}
 
+		log(">> %s", (uint16_t *)frame);
+		
 		int ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, total_len / 2);
 
 		if (ret) {
 			log("mixer send error %d", ret);
 			return ret;
 		}
-
+		debug("### MIX sent: %d", count);
 		msg->action = F2I_MIXER_ACTION_APPEND;
-
 	} while (buflen > 0);
 
 	debug("mixer upload OK");

@@ -52,6 +52,7 @@ extern "C" {
 //#define DEBUG
 #include "px4io.h"
 }
+static int count = 0;
 
 /*
  * Maximum interval in us before FMU signal is considered lost
@@ -87,6 +88,7 @@ static MixerGroup mixer_group(mixer_callback, 0);
 void
 mixer_tick(void)
 {
+	count++;
 	/* check that we are receiving fresh data from the FMU */
 	if ((hrt_absolute_time() - system_state.fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
 
@@ -113,14 +115,14 @@ mixer_tick(void)
 
 		if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) &&
 		     (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
-
+			if (count % 200 == 0) debug("FMU");
 			/* mix from FMU controls */
 			source = MIX_FMU;
 		}
 
 		if ( (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) &&
 		     (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK)) {
-
+			if (count % 200 == 0) debug("OVERRIDE");
 		 	/* if allowed, mix from RC inputs directly */
 			source = MIX_OVERRIDE;
 		}
@@ -142,6 +144,8 @@ mixer_tick(void)
 
 		/* mix */
 		mixed = mixer_group.mix(&outputs[0], IO_SERVO_COUNT);
+		if (count % 200 == 0) debug("MIXED: %d", mixed);
+		if (count % 200 == 0) debug("r_rc_values: %d", r_page_rc_input[1]);
 
 		/* scale to PWM and update the servo outputs as required */
 		for (unsigned i = 0; i < mixed; i++) {
@@ -302,8 +306,10 @@ mixer_handle_text(const void *buffer, size_t length)
 
 	debug("mixer text %u", length);
 
-	if (length < sizeof(px4io_mixdata))
+	if (length < sizeof(px4io_mixdata)) {
+		debug("ERROR: %d vs %d", length, sizeof(px4io_mixdata));
 		return;
+	}
 
 	unsigned	text_length = length - sizeof(px4io_mixdata);
 
@@ -349,7 +355,6 @@ mixer_handle_text(const void *buffer, size_t length)
 
 			mixer_text_length = resid;
 		}
-
 		break;
 	}
 }

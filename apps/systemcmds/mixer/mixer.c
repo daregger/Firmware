@@ -125,6 +125,7 @@ load(const char *devname, const char *fname)
 
 		/* add the line to the buffer */
 		strcat(buf, line);
+		fprintf(stderr, "READ\n");
 	}
 
 	/* XXX pass the buffer to the device */

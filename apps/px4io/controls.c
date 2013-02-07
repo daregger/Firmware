@@ -45,7 +45,7 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/ppm_decode.h>
 
-//#define DEBUG
+#define DEBUG
 #include "px4io.h"
 
 #define RC_FAILSAFE_TIMEOUT		2000000		/**< two seconds failsafe timeout */
@@ -53,6 +53,8 @@
 #define RC_CHANNEL_LOW_THRESH		-5000
 
 static bool	ppm_input(uint16_t *values, uint16_t *num_values);
+
+static int count = 0;
 
 void
 controls_main(void)
@@ -249,9 +251,12 @@ controls_main(void)
 		 * Override is enabled if either the hardcoded channel / value combination
 		 * is selected, or the AP has requested it.
 		 */
-		if ((r_setup_features & PX4IO_P_FEAT_ARMING_MANUAL_OVERRIDE_OK) && 
-			(r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK)) {
+		if (r_setup_features & PX4IO_P_FEAT_ARMING_MANUAL_OVERRIDE_OK)
+			if (count++ % 200 == 0) debug("ARMED");
 
+		//if ((r_setup_features & PX4IO_P_FEAT_ARMING_MANUAL_OVERRIDE_OK) && 
+		//	(r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK)) {
+		if (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) {
 			bool override = false;
 
 			/*
@@ -266,17 +271,18 @@ controls_main(void)
 			/*
 			 * Check for an explicit manual override request from the AP.
 			 */
+
 			if ((r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) &&
 				(r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE))
 				override = true;
 
 			if (override) {
-
 				r_status_flags |= PX4IO_P_STATUS_FLAGS_OVERRIDE;
 
 				/* mix new RC input control values to servos */
-				if (dsm_updated || sbus_updated || ppm_updated)
+				if (dsm_updated || sbus_updated || ppm_updated) {
 					mixer_tick();
+				}
 
 			} else {
 				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_OVERRIDE;

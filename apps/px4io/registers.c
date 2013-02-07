@@ -47,6 +47,9 @@
 #include "px4io.h"
 #include "protocol.h"
 
+#include <debug.h>
+#define debug(fmt, args...)	lib_lowprintf(fmt "\n", ##args)
+
 static int	registers_set_one(uint8_t page, uint8_t offset, uint16_t value);
 
 /**
@@ -240,6 +243,7 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 
 		/* handle text going to the mixer parser */
 	case PX4IO_PAGE_MIXERLOAD:
+		debug("***LOAD");
 		mixer_handle_text(values, num_values * sizeof(*values));
 		break;
 
