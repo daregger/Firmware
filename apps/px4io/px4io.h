@@ -180,6 +180,9 @@ extern bool	sbus_input(uint16_t *values, uint16_t *num_values);
 // global debug level for isr_debug()
 extern volatile uint8_t debug_level;
 
+// used for mixer wakeup
+void daemon_wakeup(void);
+
 // send a debug message to the console
 extern void isr_debug(uint8_t level, const char *fmt, ...);
 
