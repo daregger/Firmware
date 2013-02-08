@@ -76,7 +76,7 @@
 #define FLOAT_TO_REG(_float)	SIGNED_TO_REG((int16_t)((_float) * 10000.0f))
 
 /* static configuration page */
-#define PX4IO_PAGE_CONFIG		0
+#define PX4IO_PAGE_CONFIG			0
 #define PX4IO_P_CONFIG_PROTOCOL_VERSION		0	/* magic numbers TBD */
 #define PX4IO_P_CONFIG_SOFTWARE_VERSION		1	/* magic numbers TBD */
 #define PX4IO_P_CONFIG_BOOTLOADER_VERSION	2	/* get this how? */
@@ -88,7 +88,7 @@
 #define PX4IO_P_CONFIG_RELAY_COUNT		8	/* harcoded # of relay outputs */
 
 /* dynamic status page */
-#define PX4IO_PAGE_STATUS		1
+#define PX4IO_PAGE_STATUS			1
 #define PX4IO_P_STATUS_FREEMEM			0
 #define PX4IO_P_STATUS_CPULOAD			1
 
@@ -115,30 +115,30 @@
 #define PX4IO_P_STATUS_IBATT			5	/* battery current in cA */
 
 /* array of post-mix actuator outputs, -10000..10000 */
-#define PX4IO_PAGE_ACTUATORS		2		/* 0..CONFIG_ACTUATOR_COUNT-1 */
+#define PX4IO_PAGE_ACTUATORS			2	/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /* array of PWM servo output values, microseconds */
-#define PX4IO_PAGE_SERVOS		3		/* 0..CONFIG_ACTUATOR_COUNT-1 */
+#define PX4IO_PAGE_SERVOS			3	/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /* array of raw RC input values, microseconds */
-#define PX4IO_PAGE_RAW_RC_INPUT		4
+#define PX4IO_PAGE_RAW_RC_INPUT			4
 #define PX4IO_P_RAW_RC_COUNT			0	/* number of valid channels */
 #define PX4IO_P_RAW_RC_BASE			1	/* CONFIG_RC_INPUT_COUNT channels from here */
 
 /* array of scaled RC input values, -10000..10000 */
-#define PX4IO_PAGE_RC_INPUT		5
+#define PX4IO_PAGE_RC_INPUT			5
 #define PX4IO_P_RC_VALID			0	/* bitmask of valid controls */
 #define PX4IO_P_RC_BASE				1	/* CONFIG_RC_INPUT_COUNT controls from here */
 
 /* array of raw ADC values */
-#define PX4IO_PAGE_RAW_ADC_INPUT	6		/* 0..CONFIG_ADC_INPUT_COUNT-1 */
+#define PX4IO_PAGE_RAW_ADC_INPUT		6	/* 0..CONFIG_ADC_INPUT_COUNT-1 */
 
 /* setup page */
-#define PX4IO_PAGE_SETUP		100
+#define PX4IO_PAGE_SETUP			100
 #define PX4IO_P_SETUP_FEATURES			0
 #define PX4IO_P_FEAT_ARMING_MANUAL_OVERRIDE_OK	(1 << 0) /* OK to switch to manual override */
 
-#define PX4IO_P_SETUP_ARMING			1	/* arming controls */
+#define PX4IO_P_SETUP_ARMING			1	 /* arming controls */
 #define PX4IO_P_SETUP_ARMING_ARM_OK		(1 << 0) /* OK to arm */
 #define PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE	(1 << 2) /* request switch to manual override */
 #define PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK	(1 << 3)
@@ -152,13 +152,13 @@
 #define PX4IO_P_SETUP_IBATT_BIAS		8	/* battery current bias value */
 
 /* autopilot control values, -10000..10000 */
-#define PX4IO_PAGE_CONTROLS		101		/* 0..CONFIG_CONTROL_COUNT */
+#define PX4IO_PAGE_CONTROLS			101	/* 0..CONFIG_CONTROL_COUNT */
 
 /* raw text load to the mixer parser - ignores offset */
-#define PX4IO_PAGE_MIXERLOAD		102
+#define PX4IO_PAGE_MIXERLOAD			102
 
 /* R/C channel config */
-#define PX4IO_PAGE_RC_CONFIG		103	/* R/C input configuration */
+#define PX4IO_PAGE_RC_CONFIG			103	/* R/C input configuration */
 #define PX4IO_P_RC_CONFIG_MIN			0	/* lowest input value */
 #define PX4IO_P_RC_CONFIG_CENTER		1	/* center input value */
 #define PX4IO_P_RC_CONFIG_MAX			2	/* highest input value */
@@ -170,10 +170,10 @@
 #define PX4IO_P_RC_CONFIG_STRIDE		6	/* spacing between channel config data */
 
 /* PWM output - overrides mixer */
-#define PX4IO_PAGE_DIRECT_PWM		104		/* 0..CONFIG_ACTUATOR_COUNT-1 */
+#define PX4IO_PAGE_DIRECT_PWM			104	/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /* PWM failsafe values - zero disables the output */
-#define PX4IO_PAGE_FAILSAFE_PWM		105		/* 0..CONFIG_ACTUATOR_COUNT-1 */
+#define PX4IO_PAGE_FAILSAFE_PWM			105	/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /**
  * As-needed mixer data upload.
@@ -181,6 +181,7 @@
  * This message adds text to the mixer text buffer; the text
  * buffer is drained as the definitions are consumed.
  */
+#pragma pack(push, 1)
 struct px4io_mixdata {
 	uint16_t	f2i_mixer_magic;
 #define F2I_MIXER_MAGIC		0x6d74
@@ -191,4 +192,5 @@ struct px4io_mixdata {
 
 	char		text[0];	/* actual text size may vary */
 };
+#pragma pack(pop)
 
