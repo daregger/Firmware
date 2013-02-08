@@ -33,17 +33,79 @@
  *
  ****************************************************************************/
 
-/* @file U-Blox protocol definitions */
+/* @file mtk.h */
 
-#ifndef GPS_HELPER_H
-#define GPS_HELPER_H
+#ifndef MTK_H_
+#define MTK_H_
 
-class GPS_Helper
+#include "gps_helper.h"
+
+#define MTK_SYNC1_V16 0xd0
+#define MTK_SYNC1_V19 0xd1
+#define MTK_SYNC2 0xdd
+
+#define MTK_OUTPUT_5HZ		"$PMTK220,200*2C\r\n"
+#define MTK_SET_BINARY		"$PGCMD,16,0,0,0,0,0*6A\r\n"
+#define SBAS_ON	        	"$PMTK313,1*2E\r\n"
+#define WAAS_ON				"$PMTK301,2*2E\r\n"
+#define MTK_NAVTHRES_OFF 	"$PMTK397,0*23\r\n"
+
+typedef enum {
+	MTK_DECODE_UNINIT = 0,
+	MTK_DECODE_GOT_CK_A = 1,
+	MTK_DECODE_GOT_CK_B = 2
+} mtk_decode_state_t;
+
+/** the structures of the binary packets */
+#pragma pack(push, 1)
+
+typedef struct {
+	uint8_t payload; ///< Number of payload bytes
+	int32_t latitude;  ///< Latitude in degrees * 10^7
+	int32_t longitude; ///< Longitude in degrees * 10^7
+	uint32_t msl_altitude;  ///< MSL altitude in meters * 10^2
+	uint32_t ground_speed; ///< FIXME SPEC UNCLEAR
+	int32_t heading;
+	uint8_t satellites;
+	uint8_t fix_type;
+	uint32_t date;
+	uint32_t utc_time;
+	uint16_t hdop;
+	uint8_t ck_a;
+	uint8_t ck_b;
+} type_gps_mtk_packet;
+
+#pragma pack(pop)
+
+#define MTK_RECV_BUFFER_SIZE 40
+
+class MTK : public GPS_Helper
 {
 public:
-	virtual void			reset(void) = 0;
-	virtual void			configure(const int &fd, bool &baudrate_changed, unsigned &baudrate) = 0;
-	virtual void 			parse(uint8_t, struct vehicle_gps_position_s*, bool &config_needed, bool &pos_updated) = 0;
+	MTK();
+	~MTK();
+	void				reset(void);
+	void				configure(const int &fd, bool &baudrate_changed, unsigned &baudrate);
+	void 				parse(uint8_t, struct vehicle_gps_position_s*, bool &config_needed, bool &pos_updated);
+
+private:
+	/**
+	 * Reset the parse state machine for a fresh start
+	 */
+	void				decodeInit(void);
+
+	/**
+	 * While parsing add every byte (except the sync bytes) to the checksum
+	 */
+	void				addByteToChecksum(uint8_t);
+
+	mtk_decode_state_t	_decode_state;
+	bool				_config_sent;
+	uint8_t				_mtk_revision;
+	uint8_t				_rx_buffer[MTK_RECV_BUFFER_SIZE];
+	unsigned			_rx_count;
+	uint8_t 			_rx_ck_a;
+	uint8_t				_rx_ck_b;
 };
 
-#endif /* GPS_HELPER_H */
+#endif /* MTK_H_ */
