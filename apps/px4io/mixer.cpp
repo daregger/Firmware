@@ -49,7 +49,7 @@
 #include <systemlib/mixer/mixer.h>
 
 extern "C" {
-//#define DEBUG
+#define DEBUG
 #include "px4io.h"
 }
 static int count = 0;
@@ -145,7 +145,7 @@ mixer_tick(void)
 		/* mix */
 		mixed = mixer_group.mix(&outputs[0], IO_SERVO_COUNT);
 		if (count % 200 == 0) debug("MIXED: %d", mixed);
-		if (count % 200 == 0) debug("r_rc_values: %d", r_page_rc_input[1]);
+		//if (count % 200 == 0) debug("r_rc_values: %d", r_rc_values[0]);
 
 		/* scale to PWM and update the servo outputs as required */
 		for (unsigned i = 0; i < mixed; i++) {
@@ -155,7 +155,6 @@ mixer_tick(void)
 
 			/* scale to servo output */
 			r_page_servos[i] = (outputs[i] * 500.0f) + 1500;
-
 		}
 		for (unsigned i = mixed; i < IO_SERVO_COUNT; i++)
 			r_page_servos[i] = 0;
@@ -251,8 +250,9 @@ mixer_tick(void)
 
 	if (mixer_servos_armed) {
 		/* update the servo outputs. */
-		for (unsigned i = 0; i < IO_SERVO_COUNT; i++)
+		for (unsigned i = 0; i < IO_SERVO_COUNT; i++) {
 			up_pwm_servo_set(i, r_page_servos[i]);
+		}
 	}
 }
 
@@ -304,8 +304,6 @@ mixer_handle_text(const void *buffer, size_t length)
 
 	px4io_mixdata	*msg = (px4io_mixdata *)buffer;
 
-	debug("mixer text %u", length);
-
 	if (length < sizeof(px4io_mixdata)) {
 		debug("ERROR: %d vs %d", length, sizeof(px4io_mixdata));
 		return;
@@ -315,15 +313,12 @@ mixer_handle_text(const void *buffer, size_t length)
 
 	switch (msg->action) {
 	case F2I_MIXER_ACTION_RESET:
-		debug("reset");
 		mixer_group.reset();
 		mixer_text_length = 0;
 		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_MIXER_OK;
 
 		/* FALLTHROUGH */
 	case F2I_MIXER_ACTION_APPEND:
-		debug("append %d", length);
-
 		/* check for overflow - this is really fatal */
 		/* XXX could add just what will fit & try to parse, then repeat... */
 		if ((mixer_text_length + text_length + 1) > sizeof(mixer_text)) {
@@ -335,7 +330,6 @@ mixer_handle_text(const void *buffer, size_t length)
 		memcpy(&mixer_text[mixer_text_length], msg->text, text_length);
 		mixer_text_length += text_length;
 		mixer_text[mixer_text_length] = '\0';
-		debug("buflen %u", mixer_text_length);
 
 		/* process the text buffer, adding new mixers as their descriptions can be parsed */
 		unsigned resid = mixer_text_length;
@@ -346,8 +340,6 @@ mixer_handle_text(const void *buffer, size_t length)
 
 			/* ideally, this should test resid == 0 ? */
 			r_status_flags |= PX4IO_P_STATUS_FLAGS_MIXER_OK;
-
-			debug("used %u", mixer_text_length - resid);
 
 			/* copy any leftover text to the base of the buffer for re-use */
 			if (resid > 0)

@@ -86,6 +86,7 @@ controls_main(void)
 	}
 
 	for (;;) {
+		count++;
 		/* run this loop at ~100Hz */
 		int result = poll(fds, 2, 10);
 
@@ -145,6 +146,7 @@ controls_main(void)
 				if (conf[PX4IO_P_RC_CONFIG_OPTIONS] & PX4IO_P_RC_CONFIG_OPTIONS_ENABLED) {
 
 					uint16_t raw = r_raw_rc_values[i];
+					if (i == 0 && count % 500 == 0) debug("r_raw_rc_values: %d", r_raw_rc_values[i]);
 
 					/* implement the deadzone */
 					if (raw < conf[PX4IO_P_RC_CONFIG_CENTER]) {
@@ -152,17 +154,21 @@ controls_main(void)
 						if (raw > conf[PX4IO_P_RC_CONFIG_CENTER])
 							raw = conf[PX4IO_P_RC_CONFIG_CENTER];
 					}
+					if (i == 0 && count % 500 == 0) debug("value1: %d", raw);
+
 					if (raw > conf[PX4IO_P_RC_CONFIG_CENTER]) {
 						raw -= conf[PX4IO_P_RC_CONFIG_DEADZONE];
 						if (raw < conf[PX4IO_P_RC_CONFIG_CENTER])
 							raw = conf[PX4IO_P_RC_CONFIG_CENTER];
 					}
-
+					if (i == 0 && count % 500 == 0) debug("value2: %d", raw);
 					/* constrain to min/max values */
 					if (raw < conf[PX4IO_P_RC_CONFIG_MIN])
 						raw = conf[PX4IO_P_RC_CONFIG_MIN];
 					if (raw > conf[PX4IO_P_RC_CONFIG_MAX])
 						raw = conf[PX4IO_P_RC_CONFIG_MAX];
+					if (i == 0 && count % 500 == 0) 
+						debug("min: %d max: %d value3: %d", conf[PX4IO_P_RC_CONFIG_MIN], conf[PX4IO_P_RC_CONFIG_MAX], raw);
 
 					int16_t scaled = raw;
 
@@ -180,6 +186,8 @@ controls_main(void)
 
 					/* and update the scaled/mapped version */
 					unsigned mapped = conf[PX4IO_P_RC_CONFIG_ASSIGNMENT];
+					if (mapped >= MAX_CONTROL_CHANNELS)
+						debug("mapped: %d max: %d", mapped, MAX_CONTROL_CHANNELS);
 					ASSERT(mapped < MAX_CONTROL_CHANNELS);
 
 					r_rc_values[mapped] = SIGNED_TO_REG(scaled);

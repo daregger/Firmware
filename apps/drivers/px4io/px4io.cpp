@@ -596,19 +596,21 @@ PX4IO::io_set_rc_config()
 
 		sprintf(pname, "RC%d_MIN", i + 1);
 		param_get(param_find(pname), &fval);
-		regs[PX4IO_P_RC_CONFIG_MIN] = FLOAT_TO_REG(fval);
+		regs[PX4IO_P_RC_CONFIG_MIN] = (uint16_t)fval;
+		log("MIN: %d", regs[PX4IO_P_RC_CONFIG_MIN]);
 
 		sprintf(pname, "RC%d_TRIM", i + 1);
 		param_get(param_find(pname), &fval);
-		regs[PX4IO_P_RC_CONFIG_CENTER] = FLOAT_TO_REG(fval);
+		regs[PX4IO_P_RC_CONFIG_CENTER] = (uint16_t)fval;
 
 		sprintf(pname, "RC%d_MAX", i + 1);
 		param_get(param_find(pname), &fval);
-		regs[PX4IO_P_RC_CONFIG_MAX] = FLOAT_TO_REG(fval);
+		regs[PX4IO_P_RC_CONFIG_MAX] = (uint16_t)fval;
+		log("MAX: %d", regs[PX4IO_P_RC_CONFIG_MAX]);
 
 		sprintf(pname, "RC%d_DZ", i + 1);
 		param_get(param_find(pname), &fval);
-		regs[PX4IO_P_RC_CONFIG_DEADZONE] = FLOAT_TO_REG(fval);
+		regs[PX4IO_P_RC_CONFIG_DEADZONE] = (uint16_t)fval;
 
 		regs[PX4IO_P_RC_CONFIG_ASSIGNMENT] = input_map[i];
 
@@ -619,9 +621,13 @@ PX4IO::io_set_rc_config()
 			regs[PX4IO_P_RC_CONFIG_OPTIONS] |= PX4IO_P_RC_CONFIG_OPTIONS_REVERSE;
 
 		/* send channel config to IO */
+		log("SEND - offset: %d", offset);
 		ret = io_reg_set(PX4IO_PAGE_RC_CONFIG, offset, regs, PX4IO_P_RC_CONFIG_STRIDE);
-		if (ret != OK)
+		if (ret != OK) {
+			log("FAILED");
 			break;
+		}
+		log("OK");
 		offset += PX4IO_P_RC_CONFIG_STRIDE;
 	}
 
@@ -916,28 +922,23 @@ PX4IO::io_reg_modify(uint8_t page, uint8_t offset, uint16_t clearbits, uint16_t 
 int
 PX4IO::mixer_send(const char *buf, unsigned buflen)
 {
-	log(">> %s", buf);
 	uint8_t	frame[_max_transfer];
 	px4io_mixdata *msg = (px4io_mixdata *)&frame[0];
 	unsigned max_len = _max_transfer - sizeof(px4io_mixdata);
 
 	msg->f2i_mixer_magic = F2I_MIXER_MAGIC;
 	msg->action = F2I_MIXER_ACTION_RESET;
-	debug("### MIX buflen: %d", buflen);
 	do {
 		unsigned count = buflen;
 
 		if (count > max_len)
 			count = max_len;
 
-		debug("COUNT: %d", count);
 		if (count > 0) {
 			memcpy(&msg->text[0], buf, count);
-			debug("<< count %d text %s", count, frame);
 			buf += count;
 			buflen -= count;
 		}
-		debug("MSG: %s", msg->text);
 
 		/*
 		 * We have to send an even number of bytes.  This
@@ -951,8 +952,6 @@ PX4IO::mixer_send(const char *buf, unsigned buflen)
 			msg->text[count] = '\0';
 			total_len++;
 		}
-
-		log(">> %s", (uint16_t *)frame);
 		
 		int ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, total_len / 2);
 
@@ -960,7 +959,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen)
 			log("mixer send error %d", ret);
 			return ret;
 		}
-		debug("### MIX sent: %d", count);
+
 		msg->action = F2I_MIXER_ACTION_APPEND;
 	} while (buflen > 0);
 

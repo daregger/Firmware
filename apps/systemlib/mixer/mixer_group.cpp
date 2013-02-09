@@ -53,10 +53,10 @@
 
 #include "mixer.h"
 
-#define debug(fmt, args...)	do { } while(0)
+//#define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
-//#include <debug.h>
-//#define debug(fmt, args...)	lib_lowprintf(fmt "\n", ##args)
+#include <debug.h>
+#define debug(fmt, args...)	lib_lowprintf(fmt "\n", ##args)
 
 MixerGroup::MixerGroup(ControlCallback control_cb, uintptr_t cb_handle) :
 	Mixer(control_cb, cb_handle),
@@ -136,28 +136,23 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 		const char *p = end - buflen;
 		unsigned resid = buflen;
 
-		debug("%c", *p);
 		/*
 		 * Use the next character as a hint to decide which mixer class to construct.
 		 */
 		switch (*p) {
 		case 'Z':
-			debug("ZZZZ");
 			m = NullMixer::from_text(p, resid);
 			break;
 
 		case 'M':
-			debug("MMMM");
 			m = SimpleMixer::from_text(_control_cb, _cb_handle, p, resid);
 			break;
 
 		case 'R':
-			debug("RRRR");
 			m = MultirotorMixer::from_text(_control_cb, _cb_handle, p, resid);
 			break;
 
 		default:
-			debug("JUNK: [%c]", *p);
 			/* it's probably junk or whitespace, skip a byte and retry */
 			buflen--;
 			continue;

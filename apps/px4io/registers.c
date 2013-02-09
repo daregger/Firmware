@@ -243,7 +243,6 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 
 		/* handle text going to the mixer parser */
 	case PX4IO_PAGE_MIXERLOAD:
-		debug("***LOAD");
 		mixer_handle_text(values, num_values * sizeof(*values));
 		break;
 
@@ -343,7 +342,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 	case PX4IO_PAGE_RC_CONFIG: {
 		unsigned channel = offset / PX4IO_P_RC_CONFIG_STRIDE;
-		unsigned index = offset % PX4IO_P_RC_CONFIG_STRIDE;
+ 		unsigned index = offset - channel * PX4IO_P_RC_CONFIG_STRIDE;
 		uint16_t *conf = &r_page_rc_input_config[channel * PX4IO_P_RC_CONFIG_STRIDE];
 
 		if (channel >= MAX_CONTROL_CHANNELS)
@@ -351,7 +350,6 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 		/* disable the channel until we have a chance to sanity-check it */
 		conf[PX4IO_P_RC_CONFIG_OPTIONS] &= PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
-
 		switch (index) {
 
 		case PX4IO_P_RC_CONFIG_MIN:
@@ -360,6 +358,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_RC_CONFIG_DEADZONE:
 		case PX4IO_P_RC_CONFIG_ASSIGNMENT:
 			conf[index] = value;
+			debug("offset: %d channel: %d index: %u value: %d", offset, channel, index, value);
 			break;
 
 		case PX4IO_P_RC_CONFIG_OPTIONS:
@@ -367,6 +366,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 			/* set all options except the enabled option */
 			conf[index] = value & ~PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
+			debug("offset: %d channel: %d index: %u", offset, channel, index);
 
 			/* should the channel be enabled? */
 			/* this option is normally set last */
@@ -374,7 +374,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 				/* assert min..center..max ordering */
 				if (conf[PX4IO_P_RC_CONFIG_MIN] < 500)
 					break;
-				if (conf[PX4IO_P_RC_CONFIG_MAX] < 2500)
+				if (conf[PX4IO_P_RC_CONFIG_MAX] > 2500)
 					break;
 				if (conf[PX4IO_P_RC_CONFIG_CENTER] < conf[PX4IO_P_RC_CONFIG_MIN])
 					break;
@@ -394,8 +394,8 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 				conf[index] |= PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
 			}
 			break;
-
 		}
+		break;
 	}
 
 	default:

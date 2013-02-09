@@ -58,7 +58,7 @@
 #define rCR2		REG(STM32_I2C_CR2_OFFSET)
 #define rOAR1		REG(STM32_I2C_OAR1_OFFSET)
 #define rOAR2		REG(STM32_I2C_OAR2_OFFSET)
-#define rDR		REG(STM32_I2C_DR_OFFSET)
+#define rDR			REG(STM32_I2C_DR_OFFSET)
 #define rSR1		REG(STM32_I2C_SR1_OFFSET)
 #define rSR2		REG(STM32_I2C_SR2_OFFSET)
 #define rCCR		REG(STM32_I2C_CCR_OFFSET)
@@ -77,7 +77,7 @@ static void		i2c_tx_complete(void);
 static DMA_HANDLE	rx_dma;
 static DMA_HANDLE	tx_dma;
 
-static uint8_t		rx_buf[64];
+static uint8_t		rx_buf[68];
 static unsigned		rx_len;
 
 static const uint8_t	junk_buf[] = { 0xff, 0xff, 0xff, 0xff };
@@ -158,7 +158,6 @@ i2c_interrupt(int irq, FAR void *context)
 	uint16_t sr1 = rSR1;
 
 	if (sr1 & (I2C_SR1_STOPF | I2C_SR1_AF | I2C_SR1_ADDR)) {
-
 		if (sr1 & I2C_SR1_STOPF) {
 			/* write to CR1 to clear STOPF */
 			(void)rSR1;		/* as recommended, re-read SR1 */
@@ -201,7 +200,6 @@ i2c_interrupt(int irq, FAR void *context)
 	/* clear any errors that might need it (this handles AF as well */
 	if (sr1 & I2C_SR1_ERRORMASK)
 		rSR1 = 0;
-
 	return 0;
 }
 
@@ -227,12 +225,8 @@ i2c_rx_setup(void)
 static void
 i2c_rx_complete(void)
 {
-	//rx_len = sizeof(rx_buf) - stm32_dmaresidual(rx_dma);
-	rx_len = sizeof(rx_buf) - (stm32_dmaresidual(rx_dma) % 64);
-	//if (rx_buf[0] == PX4IO_PAGE_MIXERLOAD) {
-	//    debug("rx_len %d buff %d dma %d", rx_len, sizeof(rx_buf), stm32_dmaresidual(rx_dma));
-	//	debug(">> %s", (const uint16_t *)&rx_buf[2]);
-	//}
+	rx_len = sizeof(rx_buf) - stm32_dmaresidual(rx_dma);
+	//rx_len = sizeof(rx_buf) - (stm32_dmaresidual(rx_dma) % 64);
 	
 	stm32_dmastop(rx_dma);
 
@@ -243,8 +237,6 @@ i2c_rx_complete(void)
 		/* work out how many registers are being written */
 		unsigned count = (rx_len - 2) / 2;
 		if (count > 0) {
-			//if (rx_buf[0] == PX4IO_PAGE_MIXERLOAD)
-			//	debug("*MIXER CALL");
 			registers_set(selected_page, selected_offset, (const uint16_t *)&rx_buf[2], count);
 		} else {
 			/* no registers written, must be an address cycle */
