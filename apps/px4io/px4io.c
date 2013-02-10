@@ -82,8 +82,8 @@ static pid_t daemon_pid;
 static volatile uint32_t msg_counter;
 static volatile uint32_t last_msg_counter;
 static volatile uint8_t msg_next_out, msg_next_in;
-#define NUM_MSG 6
-static char msg[NUM_MSG][60];
+#define NUM_MSG 2
+static char msg[NUM_MSG][30];
 
 /*
   add a debug message to be printed on the console
