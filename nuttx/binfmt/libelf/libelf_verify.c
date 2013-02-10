@@ -1,7 +1,7 @@
 /****************************************************************************
- * sched/sched_releasefiles.c
+ * binfmt/libelf/elf_verify.c
  *
- *   Copyright (C) 2007, 2008, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,12 +39,21 @@
 
 #include <nuttx/config.h>
 
-#include <sched.h>
-#include <nuttx/fs/fs.h>
-#include <nuttx/net/net.h>
-#include <nuttx/lib.h>
+#include <string.h>
+#include <debug.h>
+#include <errno.h>
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
+#include <nuttx/binfmt/elf.h>
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Constant Data
+ ****************************************************************************/
+
+static const char g_elfmagic[EI_MAGIC_SIZE] = { 0x7f, 'E', 'L', 'F' };
 
 /****************************************************************************
  * Private Functions
@@ -55,60 +64,57 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: sched_releasefiles
+ * Name: elf_verifyheader
  *
  * Description:
- *   Release file resources attached to a TCB.  This file may be called
- *   multiple times as a task exists.  It will be called as early as possible
- *   to support proper closing of complex drivers that may need to wait
- *   on external events.
+ *   Given the header from a possible ELF executable, verify that it
+ *   is an ELF executable.
  *
- * Parameters:
- *   tcb - tcb of the new task.
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
  *
- * Return Value:
- *   None
- *
- * Assumptions:
+ *   -ENOEXEC  : Not an ELF file
+ *   -EINVAL : Not a relocatable ELF file or not supported by the current,
+ *               configured architecture.
  *
  ****************************************************************************/
 
-int sched_releasefiles(_TCB *tcb)
+int elf_verifyheader(FAR const Elf32_Ehdr *ehdr)
 {
-  if (tcb)
+  if (!ehdr)
     {
-#if CONFIG_NFILE_DESCRIPTORS > 0
-      /* Free the file descriptor list */
-
-      if (tcb->filelist)
-        {
-          files_releaselist(tcb->filelist);
-          tcb->filelist = NULL;
-        }
-
-#if CONFIG_NFILE_STREAMS > 0
-      /* Free the stream list */
-
-      if (tcb->streams)
-        {
-          lib_releaselist(tcb->streams);
-          tcb->streams = NULL;
-        }
-#endif /* CONFIG_NFILE_STREAMS */
-#endif /* CONFIG_NFILE_DESCRIPTORS */
-
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
-      /* Free the file descriptor list */
-
-      if (tcb->sockets)
-        {
-          net_releaselist(tcb->sockets);
-          tcb->sockets = NULL;
-        }
-#endif /* CONFIG_NSOCKET_DESCRIPTORS */
+      bdbg("NULL ELF header!");
+      return -ENOEXEC;
     }
+
+  /* Verify that the magic number indicates an ELF file */
+
+  if (memcmp(ehdr->e_ident, g_elfmagic, EI_MAGIC_SIZE) != 0)
+    {
+      bvdbg("Not ELF magic {%02x, %02x, %02x, %02x}\n",
+            ehdr->e_ident[0], ehdr->e_ident[1], ehdr->e_ident[2], ehdr->e_ident[3]);
+      return -ENOEXEC;
+    }
+
+  /* Verify that this is a relocatable file */
+
+  if (ehdr->e_type != ET_REL)
+    {
+      bdbg("Not a relocatable file: e_type=%d\n", ehdr->e_type);
+      return -EINVAL;
+    }
+
+  /* Verify that this file works with the currently configured architecture */
+
+  if (arch_checkarch(ehdr))
+    {
+      bdbg("Not a supported architecture\n");
+      return -ENOEXEC;
+    }
+
+  /* Looks good so far... we still might find some problems later. */
 
   return OK;
 }
 
-#endif /* CONFIG_NFILE_DESCRIPTORS || CONFIG_NSOCKET_DESCRIPTORS */

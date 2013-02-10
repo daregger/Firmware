@@ -1,7 +1,7 @@
 /****************************************************************************
- * sched_setuppthreadfiles.c
+ * binfmt/libelf/libelf_uninit.c
  *
- *   Copyright (C) 2007, 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,15 +39,22 @@
 
 #include <nuttx/config.h>
 
-#include <sched.h>
+#include <unistd.h>
+#include <debug.h>
+#include <errno.h>
 
-#include <nuttx/fs/fs.h>
-#include <nuttx/net/net.h>
-#include <nuttx/lib.h>
+#include <nuttx/kmalloc.h>
+#include <nuttx/binfmt/elf.h>
 
-#include "os_internal.h"
+#include "libelf.h"
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
+/****************************************************************************
+ * Pre-Processor Definitions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Constant Data
+ ****************************************************************************/
 
 /****************************************************************************
  * Private Functions
@@ -58,51 +65,62 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: sched_setuppthreadfiles
+ * Name: elf_uninit
  *
  * Description:
- *   Configure a newly allocated TCB so that it will inherit file
- *   descriptors and streams from the parent pthread.
+ *   Releases any resources committed by elf_init().  This essentially
+ *   undoes the actions of elf_init.
  *
- * Parameters:
- *   tcb - tcb of the new task.
- *
- * Return Value:
- *   OK (if an error were returned, it would need to be a non-negated
- *   errno value).
- *
- * Assumptions:
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
  *
  ****************************************************************************/
 
-int sched_setuppthreadfiles(FAR _TCB *tcb)
+int elf_uninit(struct elf_loadinfo_s *loadinfo)
 {
-  FAR _TCB *rtcb = (FAR _TCB*)g_readytorun.head;
+  /* Free all working buffers */
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
-  /* The child thread inherits the parent file descriptors */
+  elf_freebuffers(loadinfo);
 
-  tcb->filelist = rtcb->filelist;
-  files_addreflist(tcb->filelist);
+  /* Close the ELF file */
 
-#endif /* CONFIG_NFILE_DESCRIPTORS */
+  if (loadinfo->filfd >= 0)
+    {
+      close(loadinfo->filfd);
+    }
 
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
-  /* The child thread inherits the parent socket descriptors */
-
-  tcb->sockets = rtcb->sockets;
-  net_addreflist(tcb->sockets);
-
-#endif /* CONFIG_NSOCKET_DESCRIPTORS */
-
-#if CONFIG_NFILE_STREAMS > 0
-  /* The child thread inherits the parent streams */
-
-  tcb->streams = rtcb->streams;
-  lib_addreflist(tcb->streams);
-
-#endif /* CONFIG_NFILE_STREAMS */
   return OK;
 }
 
-#endif /* CONFIG_NFILE_DESCRIPTORS || CONFIG_NSOCKET_DESCRIPTORS */
+/****************************************************************************
+ * Name: elf_freebuffers
+ *
+ * Description:
+ *  Release all working buffers.
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+int elf_freebuffers(struct elf_loadinfo_s *loadinfo)
+{
+  /* Release all working allocations  */
+
+  if (loadinfo->shdr)
+    {
+      kfree((FAR void *)loadinfo->shdr);
+      loadinfo->shdr      = NULL;
+    }
+
+  if (loadinfo->iobuffer)
+    {
+      kfree((FAR void *)loadinfo->iobuffer);
+      loadinfo->iobuffer  = NULL;
+      loadinfo->buflen    = 0;
+    }
+
+  return OK;
+}
