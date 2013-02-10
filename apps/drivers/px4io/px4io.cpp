@@ -361,6 +361,8 @@ PX4IO::init()
 		return -errno;
 	}
 
+	log("initialized");
+
 	return OK;
 }
 

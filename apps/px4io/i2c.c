@@ -73,7 +73,7 @@ static void		i2c_tx_complete(void);
 static DMA_HANDLE	rx_dma;
 static DMA_HANDLE	tx_dma;
 
-static uint8_t		rx_buf[68];
+static uint8_t		rx_buf[64];
 static unsigned		rx_len;
 
 static const uint8_t	junk_buf[] = { 0xff, 0xff, 0xff, 0xff };
@@ -256,7 +256,9 @@ i2c_rx_setup(void)
 static void
 i2c_rx_complete(void)
 {
-	rx_len = sizeof(rx_buf) - stm32_dmaresidual(rx_dma);
+	// XXX the DMA residual command returns a complete transaction (residual = 0) as a completely failed one (redisual = 64)
+	// needs to be adressed in the NuttX I2C DMA implementation
+	rx_len = sizeof(rx_buf) - (stm32_dmaresidual(rx_dma) % sizeof(rx_buf));
 	stm32_dmastop(rx_dma);
 
 	if (rx_len >= 2) {
