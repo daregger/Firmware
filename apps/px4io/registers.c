@@ -48,7 +48,7 @@
 #include "protocol.h"
 
 #include <debug.h>
-#define debug(fmt, args...)	lib_lowprintf(fmt "\n", ##args)
+#define debug(fmt, args...)	lowsyslog(fmt "\n", ##args)
 
 static int	registers_set_one(uint8_t page, uint8_t offset, uint16_t value);
 
