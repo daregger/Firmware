@@ -122,7 +122,7 @@ static void show_debug_messages(void)
  */
 static void loop_overtime(void *arg)
 {
-	lib_lowprintf("RESETTING\n");
+	lowsyslog("RESETTING\n");
 	i2c_loop_resets++;
 	i2c_dump();
 	i2c_reset();
@@ -206,6 +206,9 @@ int user_start(int argc, char *argv[])
         if (sigaction(SIGUSR1, &sa, NULL) != OK) {
 		debug("Failed to setup SIGUSR1 handler\n");
 	}
+
+	// XXX remove
+	int counter = 0;
 
 	/* run the mixer at 100Hz (for now...) */
 	/* XXX we should use CONFIG_IDLE_CUSTOM and take over the idle thread instead of running two additional tasks */
