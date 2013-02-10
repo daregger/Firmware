@@ -44,6 +44,7 @@
 #include <errno.h>
 #include <string.h>
 #include <poll.h>
+#include <signal.h>
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
@@ -63,8 +64,89 @@ struct sys_state_s 	system_state;
 
 static struct hrt_call serial_dma_call;
 
+// global debug level for isr_debug()
+volatile uint8_t debug_level = 0;
+
+volatile uint32_t i2c_loop_resets = 0;
+
+struct hrt_call loop_overtime_call;
+
+// this allows wakeup of the main task via a signal
+static pid_t daemon_pid;
+
+
+/*
+  a set of debug buffers to allow us to send debug information from ISRs
+ */
+
+static volatile uint32_t msg_counter;
+static volatile uint32_t last_msg_counter;
+static volatile uint8_t msg_next_out, msg_next_in;
+#define NUM_MSG 2
+static char msg[NUM_MSG][30];
+
+/*
+  add a debug message to be printed on the console
+ */
+void isr_debug(uint8_t level, const char *fmt, ...)
+{
+	if (level > debug_level) {
+		return;
+	}
+	va_list ap;
+	va_start(ap, fmt);
+	vsnprintf(msg[msg_next_in], sizeof(msg[0]), fmt, ap);
+	va_end(ap);
+	msg_next_in = (msg_next_in+1) % NUM_MSG;
+	msg_counter++;
+}
+
+/*
+  show all pending debug messages
+ */
+static void show_debug_messages(void)
+{
+	if (msg_counter != last_msg_counter) {
+		uint32_t n = msg_counter - last_msg_counter;
+		if (n > NUM_MSG) n = NUM_MSG;
+		last_msg_counter = msg_counter;
+		while (n--) {
+			debug("%s", msg[msg_next_out]);
+			msg_next_out = (msg_next_out+1) % NUM_MSG;
+		}
+	}
+}
+
+/*
+  catch I2C lockups
+ */
+static void loop_overtime(void *arg)
+{
+	lowsyslog("RESETTING\n");
+	i2c_loop_resets++;
+	i2c_dump();
+	i2c_reset();
+	hrt_call_after(&loop_overtime_call, 100000, (hrt_callout)loop_overtime, NULL);
+}
+
+static void wakeup_handler(int signo, siginfo_t *info, void *ucontext)
+{
+	// nothing to do - we just want poll() to return
+}
+
+
+/*
+  wakeup the main task using a signal
+ */
+void daemon_wakeup(void)
+{
+	kill(daemon_pid, SIGUSR1);
+}
+
 int user_start(int argc, char *argv[])
 {
+	daemon_pid = getpid();
+
 	/* run C++ ctors before we go any further */
 	up_cxxinitialize();
 
@@ -81,7 +163,7 @@ int user_start(int argc, char *argv[])
 	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)stm32_serial_dma_poll, NULL);
 
 	/* print some startup info */
-	debug("\nPX4IO: starting\n");
+	lowsyslog("\nPX4IO: starting\n");
 
 	/* default all the LEDs to off while we start */
 	LED_AMBER(false);
@@ -104,9 +186,8 @@ int user_start(int argc, char *argv[])
 		    (main_t)controls_main,
 		    NULL);
 
-
 	struct mallinfo minfo = mallinfo();
-	debug("free %u largest %u\n", minfo.mxordblk, minfo.fordblks);
+	lowsyslog("free %u largest %u\n", minfo.mxordblk, minfo.fordblks);
 
 	/* start the i2c handler */
 	i2c_init();
@@ -114,12 +195,41 @@ int user_start(int argc, char *argv[])
 	/* add a performance counter for mixing */
 	perf_counter_t mixer_perf = perf_alloc(PC_ELAPSED, "mix");
 
+	/* 
+	   setup a null handler for SIGUSR1 - we will use this for wakeup from poll()
+	*/
+        struct sigaction sa;
+	memset(&sa, 0, sizeof(sa));
+        sa.sa_sigaction = wakeup_handler;
+	sigfillset(&sa.sa_mask);
+	sigdelset(&sa.sa_mask, SIGUSR1);
+        if (sigaction(SIGUSR1, &sa, NULL) != OK) {
+		debug("Failed to setup SIGUSR1 handler\n");
+	}
+
+	// XXX remove
+	int counter = 0;
+
 	/* run the mixer at 100Hz (for now...) */
 	/* XXX we should use CONFIG_IDLE_CUSTOM and take over the idle thread instead of running two additional tasks */
 	for (;;) {
+		/*
+		  if we are not scheduled for 100ms then reset the I2C bus
+		 */
+		hrt_call_after(&loop_overtime_call, 100000, (hrt_callout)loop_overtime, NULL);
+
 		poll(NULL, 0, 10);
 		perf_begin(mixer_perf);
 		mixer_tick();
 		perf_end(mixer_perf);
+
+		show_debug_messages();
+		if (counter++ == 200) {
+			counter = 0;
+			isr_debug(0, "tick debug=%u status=0x%x resets=%u", 
+				  (unsigned)debug_level,
+				  (unsigned)r_status_flags,
+				  (unsigned)i2c_loop_resets);
+		}
 	}
 }

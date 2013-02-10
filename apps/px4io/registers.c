@@ -201,10 +201,12 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 			values++;
 		}
 
-		/* XXX we should cause a mixer tick ASAP */
 		system_state.fmu_data_received_time = hrt_absolute_time();
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
 		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_RAW_PWM;
+		
+		// wake up daemon to trigger mixer
+		daemon_wakeup();
 		break;
 
 		/* handle raw PWM input */
@@ -221,9 +223,11 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 			values++;
 		}
 
-		/* XXX we should cause a mixer tick ASAP */
 		system_state.fmu_data_received_time = hrt_absolute_time();
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK | PX4IO_P_STATUS_FLAGS_RAW_PWM;
+
+		// wake up the main thread to trigger mixer
+		daemon_wakeup();
 		break;
 
 		/* handle setup for servo failsafe values */
@@ -333,6 +337,11 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			POWER_RELAY2(value & (1 << 1) ? 1 : 0);
 			POWER_ACC1(value & (1 << 2) ? 1 : 0);
 			POWER_ACC2(value & (1 << 3) ? 1 : 0);
+			break;
+
+		case PX4IO_P_SETUP_SET_DEBUG:
+			debug_level = value;
+			isr_debug(0, "set debug %u\n", (unsigned)debug_level);
 			break;
 
 		default:
