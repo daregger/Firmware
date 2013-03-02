@@ -331,10 +331,14 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 					float y_vel_err_earth = -(local_pos_est.vy - y_vel_setpoint);
 					float x_vel_err_earth = (local_pos_est.vx - x_vel_setpoint);
 					/* rotMatrix is from body to earth*/
-					rotMatrix[0] = cos(vicon_pos.yaw);
+					/*rotMatrix[0] = cos(vicon_pos.yaw);
 					rotMatrix[1] = -sin(vicon_pos.yaw);
 					rotMatrix[2] = sin(vicon_pos.yaw);
-					rotMatrix[3] = cos(vicon_pos.yaw);
+					rotMatrix[3] = cos(vicon_pos.yaw);*/
+					rotMatrix[0] = cos(att.yaw);
+					rotMatrix[1] = -sin(att.yaw);
+					rotMatrix[2] = sin(att.yaw);
+					rotMatrix[3] = cos(att.yaw);
 					/* PD regler im earth frame, different sign because of Transformation from earth to body frame */
 					float rollpos = (rotMatrix[0]*y_pos_err_earth-rotMatrix[1]*x_pos_err_earth)*pos_ctrl_gain_p;
 					float rollvel = (rotMatrix[0]*y_vel_err_earth-rotMatrix[1]*x_vel_err_earth)*pos_ctrl_gain_d;
@@ -400,7 +404,7 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 					//OVERRIDE CONTROLLER
 					//att_sp.roll_body = manual.roll;
 					//att_sp.pitch_body = manual.pitch;
-					//att_sp.thrust_body =  manual.thrust;
+					att_sp.thrust_body =  manual.thrust;
 					//END OVERRIDE CONTROLLER
 
 					/* publish new attitude setpoint */
