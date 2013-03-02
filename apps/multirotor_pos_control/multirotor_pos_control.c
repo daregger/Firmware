@@ -192,7 +192,7 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 	static float pos_ctrl_gain_d = 0.8f;
 	static float z_ctrl_gain_p = 0.8f;
 	static float z_ctrl_gain_d = 0.6f;
-	static float z_pos_setpoint = -1.0f;
+	static float z_pos_setpoint = -0.8f;
 	const float pitch_limit = 0.33f;
 	const float roll_limit = 0.33f;
 	const float thrust_limit_upper = 0.5f;
@@ -212,7 +212,6 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 	pos_ctrl_gain_p = pos_params.pos_p;
 	z_ctrl_gain_p = pos_params.height_p;
 	z_ctrl_gain_d = pos_params.height_d;
-	z_pos_setpoint = pos_params.height_sp;
 	local_pos_sp_x = pos_params.loc_sp_x;
 	local_pos_sp_y = pos_params.loc_sp_y;
 	local_pos_sp_z = pos_params.loc_sp_z;
@@ -255,7 +254,6 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 				pos_ctrl_gain_p = pos_params.pos_p;
 				z_ctrl_gain_p = pos_params.height_p;
 				z_ctrl_gain_d = pos_params.height_d;
-				z_pos_setpoint = pos_params.height_sp;
 				/* write local_pos_sp from pos_estimator to pos controller and limit them to vicon space size */
 				if((pos_params.loc_sp_x < 3.0f) && (pos_params.loc_sp_x > -2.5f)){
 					local_pos_sp_x = pos_params.loc_sp_x;
@@ -346,7 +344,8 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 					//printf("[multirotor_pos_control] vicon_pos.yaw: %8.4f\n", (double)(vicon_pos.yaw));
 
 					/* Z REGLER, PD mit Feedforward */
-					float z_vel_setpoint = local_pos_sp.z;
+					float z_vel_setpoint = 0.0f;
+					z_pos_setpoint = local_pos_sp_z;
 					float z_pos_err_earth = (local_pos_est.z - z_pos_setpoint);
 					float z_vel_err_earth = (local_pos_est.vz - z_vel_setpoint);
 					float z_ctrl_thrust_err = z_pos_err_earth*z_ctrl_gain_p + z_vel_err_earth*z_ctrl_gain_d;
