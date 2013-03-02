@@ -201,6 +201,9 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 	static float local_pos_sp_y = 0.0f;
 	static float local_pos_sp_z = -0.8f;
 
+	static float local_pos_sp_x_old = 0.0f;
+	static float local_pos_sp_y_old = 0.0f;
+
 	static int printcounter = 0;
 
 	struct multirotor_position_control_params pos_params;
@@ -214,7 +217,10 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 	z_ctrl_gain_d = pos_params.height_d;
 	local_pos_sp_x = pos_params.loc_sp_x;
 	local_pos_sp_y = pos_params.loc_sp_y;
+	local_pos_sp_x_old = pos_params.loc_sp_x;
+	local_pos_sp_y_old = pos_params.loc_sp_y;
 	local_pos_sp_z = pos_params.loc_sp_z;
+	/* only publish local_sp, not for controller use */
 	local_pos_sp.x = local_pos_sp_x;
 	local_pos_sp.y = local_pos_sp_y;
 	local_pos_sp.z = local_pos_sp_z;
@@ -254,16 +260,25 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 				pos_ctrl_gain_p = pos_params.pos_p;
 				z_ctrl_gain_p = pos_params.height_p;
 				z_ctrl_gain_d = pos_params.height_d;
-				/* write local_pos_sp from pos_estimator to pos controller and limit them to vicon space size */
-				if((pos_params.loc_sp_x < 3.0f) && (pos_params.loc_sp_x > -2.5f)){
-					local_pos_sp_x = pos_params.loc_sp_x;
+				/* write local_pos_sp from pos_estimator to pos controller and limit them to vicon space size
+				 * only overwrite the values that changed from the parameter, not the ones from the rc setpoint movement*/
+				if(pos_params.loc_sp_x != local_pos_sp_x_old){
+					if((pos_params.loc_sp_x < 3.0f) && (pos_params.loc_sp_x > -2.5f)){
+						local_pos_sp_x = pos_params.loc_sp_x;
+						local_pos_sp_x_old = pos_params.loc_sp_x;
+					}
 				}
-				if((pos_params.loc_sp_y < 2.2f) && (pos_params.loc_sp_y > -2.0f)){
-					local_pos_sp_y = pos_params.loc_sp_y;
+				if(pos_params.loc_sp_y != local_pos_sp_y_old){
+					if((pos_params.loc_sp_y < 2.2f) && (pos_params.loc_sp_y > -2.0f)){
+						local_pos_sp_y = pos_params.loc_sp_y;
+						local_pos_sp_y_old = pos_params.loc_sp_y;
+					}
 				}
+				/* z can be always written new */
 				if((pos_params.loc_sp_z < 0.0f) && (pos_params.loc_sp_z > -2.0f)){
 					local_pos_sp_z = pos_params.loc_sp_z;
 				}
+				/* only publish local_sp, not for controller use */
 				local_pos_sp.x = local_pos_sp_x;
 				local_pos_sp.y = local_pos_sp_y;
 				local_pos_sp.z = local_pos_sp_z;
@@ -277,11 +292,13 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 				/* new sensor value */
 				/*float dT = (hrt_absolute_time() - last_time) / 1000000.0f;
 				last_time = hrt_absolute_time();
-				//if (printcounter == 5000) {
-				//	printcounter = 0;
-				//}
-				//printcounter++;
+					if (printcounter == 200) {
+						printcounter = 0;
+						printf("posCtrl: xsetpoint: %8.4f", (double)(fabs(manual.pitch)));
+					}
+					printcounter++;
 				*/
+
 				orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
 				orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 				orb_copy(ORB_ID(vehicle_local_position), local_pos_est_sub, &local_pos_est);
@@ -290,9 +307,23 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 				orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensors);
 
 				if (vehicle_status.state_machine == SYSTEM_STATE_AUTO) {
+					/* move around earth position setpoint with RC roll/pitch */
+					if(fabs(manual.pitch) > pos_params.sp_gain_xy_threshold){
+						local_pos_sp_x += -manual.pitch*pos_params.sp_gain_xy;
+					}
+					if(fabs(manual.roll) > pos_params.sp_gain_xy_threshold){
+						local_pos_sp_y += manual.roll*pos_params.sp_gain_xy;
+					}
+					local_pos_sp.x = local_pos_sp_x;
+					local_pos_sp.y = local_pos_sp_y;
+					local_pos_sp.timestamp = hrt_absolute_time();
+					if((isfinite(local_pos_sp.x)) && (isfinite(local_pos_sp.y)) && (isfinite(local_pos_sp.z))){
+						orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
+					}
+
 					/* ROLL & PITCH REGLER */
-					float y_pos_setpoint = local_pos_sp.y;
-					float x_pos_setpoint = local_pos_sp.x;
+					float y_pos_setpoint = local_pos_sp_y;
+					float x_pos_setpoint = local_pos_sp_x;
 					float y_pos_err_earth = -(local_pos_est.y - y_pos_setpoint);
 					float x_pos_err_earth = (local_pos_est.x - x_pos_setpoint);
 					float y_vel_setpoint = 0.0f;

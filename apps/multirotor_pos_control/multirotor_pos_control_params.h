@@ -49,6 +49,8 @@ struct multirotor_position_control_params {
 	float loc_sp_x;
 	float loc_sp_y;
 	float loc_sp_z;
+	float sp_gain_xy;
+	float sp_gain_xy_threshold;
 };
 
 struct multirotor_position_control_param_handles {
@@ -59,6 +61,8 @@ struct multirotor_position_control_param_handles {
 	param_t loc_sp_x_param_handle;
 	param_t loc_sp_y_param_handle;
 	param_t loc_sp_z_param_handle;
+	param_t sp_gain_xy_param_handle;
+	param_t sp_gain_xy_threshold_param_handle;
 };
 
 /**

@@ -51,6 +51,8 @@ PARAM_DEFINE_FLOAT(POS_Z_D, 0.8f);
 PARAM_DEFINE_FLOAT(POS_loc_sp_x, 0.0f);
 PARAM_DEFINE_FLOAT(POS_loc_sp_y, 0.0f);
 PARAM_DEFINE_FLOAT(POS_loc_sp_z, -0.8f);
+PARAM_DEFINE_FLOAT(POS_sp_gain_xy, 0.0f);
+PARAM_DEFINE_FLOAT(POS_sp_gain_xy_t, 0.1f);
 
 int parameters_init(struct multirotor_position_control_param_handles *h)
 {
@@ -62,6 +64,8 @@ int parameters_init(struct multirotor_position_control_param_handles *h)
 	h->loc_sp_x_param_handle = param_find("POS_loc_sp_x");
 	h->loc_sp_y_param_handle = param_find("POS_loc_sp_y");
 	h->loc_sp_z_param_handle = param_find("POS_loc_sp_z");
+	h->sp_gain_xy_param_handle = param_find("POS_sp_gain_xy");
+	h->sp_gain_xy_threshold_param_handle = param_find("POS_sp_gain_xy_t");
 	return OK;
 }
 
@@ -74,5 +78,7 @@ int parameters_update(const struct multirotor_position_control_param_handles *h,
 	param_get(h->loc_sp_x_param_handle, &(p->loc_sp_x));
 	param_get(h->loc_sp_y_param_handle, &(p->loc_sp_y));
 	param_get(h->loc_sp_z_param_handle, &(p->loc_sp_z));
+	param_get(h->sp_gain_xy_param_handle, &(p->sp_gain_xy));
+	param_get(h->sp_gain_xy_threshold_param_handle, &(p->sp_gain_xy_threshold));
 	return OK;
 }
