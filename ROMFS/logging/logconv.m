@@ -35,7 +35,10 @@ end
 % float bat_discharged - discharged energy in mAh
 % float adc[3]; //remaining auxiliary ADC ports [volt]
 % float local_position[6]; //tangent plane mapping into x,y,z [m] ,vx,vy,vz[m/s]
+% float local_position_setpoint[4];	/**< tangent plane mapping into x,y,z [m], yaw [radians] NED */
 % int32_t gps_raw_position[3]; //latitude [degrees] north, longitude [degrees] east, altitude above MSL [millimeter]
+% int32_t global_position_setpoint_xy[2];	/**< latitude [degrees] north, longitude [degrees] east */
+% float global_position_setpoint_z[2]; /**<  altitude above MSL [millimeter], yaw [radians] NED */
 % float attitude[3]; //pitch, roll, yaw [rad]
 % float rotMatrix[9]; //unitvectors
 % float actuator_control[4]; //unitvector
@@ -59,15 +62,18 @@ logFormat{11} = struct('name', 'bat_current',          'bytes', 4, 'array', 1, '
 logFormat{12} = struct('name', 'bat_discharged',       'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
 logFormat{13} = struct('name', 'adc',                  'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
 logFormat{14} = struct('name', 'local_position',       'bytes', 4, 'array', 6, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{15} = struct('name', 'gps_raw_position',     'bytes', 4, 'array', 3, 'precision', 'uint32',  'machineformat', 'ieee-le');
-logFormat{16} = struct('name', 'attitude',             'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{17} = struct('name', 'rot_matrix',           'bytes', 4, 'array', 9, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{18} = struct('name', 'vicon_position',       'bytes', 4, 'array', 6, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{19} = struct('name', 'actuator_control',     'bytes', 4, 'array', 4, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{20} = struct('name', 'optical_flow',         'bytes', 4, 'array', 6, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{21} = struct('name', 'diff_pressure',        'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{22} = struct('name', 'ind_airspeed',         'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{23} = struct('name', 'true_airspeed',        'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{15} = struct('name', 'local_position_setpoint','bytes', 4, 'array', 4, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{16} = struct('name', 'gps_raw_position',     'bytes', 4, 'array', 3, 'precision', 'uint32',  'machineformat', 'ieee-le');
+logFormat{17} = struct('name', 'global_position_setpoint_xy','bytes', 4, 'array', 2, 'precision', 'uint32',  'machineformat', 'ieee-le');
+logFormat{18} = struct('name', 'global_position_setpoint_z','bytes', 4, 'array', 2, 'precision', 'float',  'machineformat', 'ieee-le');
+logFormat{19} = struct('name', 'attitude',             'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{20} = struct('name', 'rot_matrix',           'bytes', 4, 'array', 9, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{21} = struct('name', 'vicon_position',       'bytes', 4, 'array', 6, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{22} = struct('name', 'actuator_control',     'bytes', 4, 'array', 4, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{23} = struct('name', 'optical_flow',         'bytes', 4, 'array', 6, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{24} = struct('name', 'diff_pressure',        'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{25} = struct('name', 'ind_airspeed',         'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{26} = struct('name', 'true_airspeed',        'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
 
 % First get length of one line
 columns = length(logFormat);

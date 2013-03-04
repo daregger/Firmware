@@ -61,6 +61,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/debug_key_value.h>
@@ -404,7 +405,7 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 					//OVERRIDE CONTROLLER
 					//att_sp.roll_body = manual.roll;
 					//att_sp.pitch_body = manual.pitch;
-					att_sp.thrust_body =  manual.thrust;
+					att_sp.thrust =  manual.throttle;
 					//END OVERRIDE CONTROLLER
 
 					/* publish new attitude setpoint */

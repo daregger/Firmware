@@ -58,7 +58,10 @@ struct sdlog_sysvector {
 	float bat_discharged;		/**< discharged energy in mAh */
 	float adc[3];			/**< remaining auxiliary ADC ports [volt] */
 	float local_position[6];	/**< tangent plane mapping into x,y,z [m] */
+	float local_position_setpoint[4];	/**< tangent plane mapping into x,y,z [m], yaw [radians] NED */
 	int32_t gps_raw_position[3];	/**< latitude [degrees] north, longitude [degrees] east, altitude above MSL [millimeter] */
+	int32_t global_position_setpoint_xy[2];	/**< latitude [degrees] north, longitude [degrees] east */
+	float global_position_setpoint_z[2]; /**<  altitude above MSL [millimeter], yaw [radians] NED */
 	float attitude[3];		/**< roll, pitch, yaw [rad] */
 	float rotMatrix[9];		/**< unitvectors */
 	float vicon[6];			/**< Vicon ground truth x, y, z and roll, pitch, yaw */

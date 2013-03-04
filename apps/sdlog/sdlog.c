@@ -65,7 +65,9 @@
 #include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_global_position_setpoint.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/optical_flow.h>
@@ -438,7 +440,9 @@ int sdlog_thread_main(int argc, char *argv[])
 		struct actuator_controls_effective_s act_controls_effective;
 		struct vehicle_command_s cmd;
 		struct vehicle_local_position_s local_pos;
+		struct vehicle_local_position_setpoint_s local_pos_sp;
 		struct vehicle_global_position_s global_pos;
+		struct vehicle_global_position_setpoint_s global_pos_sp;
 		struct vehicle_gps_position_s gps_pos;
 		struct vehicle_vicon_position_s vicon_pos;
 		struct optical_flow_s flow;
@@ -456,7 +460,9 @@ int sdlog_thread_main(int argc, char *argv[])
 		int controls_0_sub;
 		int controls_effective_0_sub;
 		int local_pos_sub;
+		int local_pos_sp_sub;
 		int global_pos_sub;
+		int global_pos_sp_sub;
 		int gps_pos_sub;
 		int vicon_pos_sub;
 		int flow_sub;
@@ -528,10 +534,24 @@ int sdlog_thread_main(int argc, char *argv[])
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
+	/* --- LOCAL POSITION SETPOINT --- */
+	/* subscribe to ORB for local position setpoint */
+	subs.local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
+	fds[fdsc_count].fd = subs.local_pos_sp_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
 	/* --- GLOBAL POSITION --- */
 	/* subscribe to ORB for global position */
 	subs.global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	fds[fdsc_count].fd = subs.global_pos_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- GLOBAL POSITION SETPOINT --- */
+	/* subscribe to ORB for global position setpoint */
+	subs.global_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
+	fds[fdsc_count].fd = subs.global_pos_sp_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -650,7 +670,9 @@ int sdlog_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(vehicle_attitude_setpoint), subs.spa_sub, &buf.att_sp);
 				orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
 				orb_copy(ORB_ID(vehicle_local_position), subs.local_pos_sub, &buf.local_pos);
+				orb_copy(ORB_ID(vehicle_local_position_setpoint), subs.local_pos_sp_sub, &buf.local_pos_sp);
 				orb_copy(ORB_ID(vehicle_global_position), subs.global_pos_sub, &buf.global_pos);
+				orb_copy(ORB_ID(vehicle_global_position_setpoint), subs.global_pos_sp_sub, &buf.global_pos_sp);
 				orb_copy(ORB_ID(vehicle_attitude), subs.att_sub, &buf.att);
 				orb_copy(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos);
 				orb_copy(ORB_ID(optical_flow), subs.flow_sub, &buf.flow);
@@ -685,7 +707,10 @@ int sdlog_thread_main(int argc, char *argv[])
 					.bat_discharged = buf.batt.discharged_mah,
 					.adc = {buf.raw.adc_voltage_v[0], buf.raw.adc_voltage_v[1], buf.raw.adc_voltage_v[2]},
 					.local_position = {buf.local_pos.x, buf.local_pos.y, buf.local_pos.z, buf.local_pos.vx, buf.local_pos.vy, buf.local_pos.vz},
+					.local_position_setpoint = {buf.local_pos_sp.x, buf.local_pos_sp.y, buf.local_pos_sp.z, buf.local_pos_sp.yaw},
 					.gps_raw_position = {buf.gps_pos.lat, buf.gps_pos.lon, buf.gps_pos.alt},
+					.global_position_setpoint_xy = {buf.global_pos_sp.lat, buf.global_pos_sp.lon},
+					.global_position_setpoint_z = {buf.global_pos_sp.altitude, buf.global_pos_sp.yaw},
 					.attitude = {buf.att.pitch, buf.att.roll, buf.att.yaw},
 					.rotMatrix = {buf.att.R[0][0], buf.att.R[0][1], buf.att.R[0][2], buf.att.R[1][0], buf.att.R[1][1], buf.att.R[1][2], buf.att.R[2][0], buf.att.R[2][1], buf.att.R[2][2]},
 					.vicon = {buf.vicon_pos.x, buf.vicon_pos.y, buf.vicon_pos.z, buf.vicon_pos.roll, buf.vicon_pos.pitch, buf.vicon_pos.yaw},
