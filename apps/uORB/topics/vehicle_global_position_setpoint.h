@@ -59,6 +59,7 @@
  */
 struct vehicle_global_position_setpoint_s
 {
+	uint64_t timestamp; /**< time of this estimate, in microseconds since system start */
 	bool altitude_is_relative;	/**< true if altitude is relative from start point	*/
 	int32_t lat;			/**< latitude in degrees * 1E7				*/
 	int32_t lon;			/**< longitude in degrees * 1E7				*/

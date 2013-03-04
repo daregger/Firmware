@@ -61,7 +61,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_global_position_setpoint.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/debug_key_value.h>
@@ -158,7 +158,8 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 	/* structures */
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
-	//struct vehicle_global_position_setpoint_s global_pos_sp;
+	struct vehicle_global_position_setpoint_s global_pos_sp;
+	memset(&global_pos_sp, 0, sizeof(global_pos_sp));
 	struct vehicle_local_position_setpoint_s local_pos_sp;
 	memset(&local_pos_sp, 0, sizeof(local_pos_sp));
 	struct vehicle_local_position_s local_pos_est;
@@ -180,13 +181,14 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int vicon_pos_sub = orb_subscribe(ORB_ID(vehicle_vicon_position));
-	//int global_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
+	int global_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
 	int local_pos_est_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	/* publish attitude setpoint */
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 	orb_advert_t local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &local_pos_sp);
+	orb_advert_t global_pos_sp_pub = orb_advertise(ORB_ID(vehicle_global_position_setpoint), &global_pos_sp);
 
 	static float rotMatrix[4] = {1.0f,  0.0f, 0.0f,  1.0f};
 	static float pos_ctrl_gain_p = 0.8f;
@@ -201,9 +203,14 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 	static float local_pos_sp_x = 0.0f;
 	static float local_pos_sp_y = 0.0f;
 	static float local_pos_sp_z = -0.8f;
-
 	static float local_pos_sp_x_old = 0.0f;
 	static float local_pos_sp_y_old = 0.0f;
+	static float global_pos_sp_lat = 47.375711f; /* degree lat */
+	static float global_pos_sp_lon = 8.550134; /* degree lon */
+	static float global_pos_sp_alt = 520.0f; /* m AMSL */
+
+	static float vel_limit = 1.0f;
+	static bool local_flag_vel_limit_enable;
 
 	static int printcounter = 0;
 
@@ -221,6 +228,17 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 	local_pos_sp_x_old = pos_params.loc_sp_x;
 	local_pos_sp_y_old = pos_params.loc_sp_y;
 	local_pos_sp_z = pos_params.loc_sp_z;
+	global_pos_sp_lat = pos_params.glo_sp_lat;
+	global_pos_sp_lon = pos_params.glo_sp_lon;
+	global_pos_sp_alt = pos_params.glo_sp_alt;
+	/* only publish global_sp, not for controller use */
+	global_pos_sp.lat = (int32_t)(global_pos_sp_lat * 1E7);
+	global_pos_sp.lon = (int32_t)(global_pos_sp_lon * 1E7);
+	global_pos_sp.altitude = global_pos_sp_alt;
+	global_pos_sp.timestamp = hrt_absolute_time();
+	orb_publish(ORB_ID(vehicle_global_position_setpoint), global_pos_sp_pub, &global_pos_sp);
+	vel_limit = pos_params.vel_limit;
+	local_flag_vel_limit_enable = ((pos_params.vel_limit_enabled >= 0.9f) && (pos_params.vel_limit_enabled <= 1.1f));
 	/* only publish local_sp, not for controller use */
 	local_pos_sp.x = local_pos_sp_x;
 	local_pos_sp.y = local_pos_sp_y;
@@ -233,7 +251,6 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 	perf_counter_t mc_err_perf = perf_alloc(PC_COUNT, "multirotor_pos_control_err");
 
 	struct pollfd fds[2] = {
-					//{ .fd = vicon_pos_sub, .events = POLLIN }, //vicon_pos_sub
 					{ .fd = sensor_sub, .events = POLLIN }, //ca. 130 Hz
 					{ .fd = sub_params,   .events = POLLIN },
 				};
@@ -261,7 +278,7 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 				pos_ctrl_gain_p = pos_params.pos_p;
 				z_ctrl_gain_p = pos_params.height_p;
 				z_ctrl_gain_d = pos_params.height_d;
-				/* write local_pos_sp from pos_estimator to pos controller and limit them to vicon space size
+				/* write local_pos_sp and limit them to vicon space size
 				 * only overwrite the values that changed from the parameter, not the ones from the rc setpoint movement*/
 				if(pos_params.loc_sp_x != local_pos_sp_x_old){
 					if((pos_params.loc_sp_x < 3.0f) && (pos_params.loc_sp_x > -2.5f)){
@@ -279,6 +296,19 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 				if((pos_params.loc_sp_z < 0.0f) && (pos_params.loc_sp_z > -2.0f)){
 					local_pos_sp_z = pos_params.loc_sp_z;
 				}
+				vel_limit = pos_params.vel_limit;
+				local_flag_vel_limit_enable = ((pos_params.vel_limit_enabled >= 0.9f) && (pos_params.vel_limit_enabled <= 1.1f));
+				global_pos_sp_lat = pos_params.glo_sp_lat;
+				global_pos_sp_lon = pos_params.glo_sp_lon;
+				global_pos_sp_alt = pos_params.glo_sp_alt;
+				global_pos_sp.lat = (int32_t)(global_pos_sp_lat * 1E7);
+				global_pos_sp.lon = (int32_t)(global_pos_sp_lon * 1E7);
+				global_pos_sp.altitude = global_pos_sp_alt;
+				global_pos_sp.timestamp = hrt_absolute_time();
+				/* only publish global_sp, not for controller use */
+				if((isfinite(global_pos_sp_lat)) && (isfinite(global_pos_sp_lon)) && (isfinite(global_pos_sp_alt))){
+					orb_publish(ORB_ID(vehicle_global_position_setpoint), global_pos_sp_pub, &global_pos_sp);
+				}
 				/* only publish local_sp, not for controller use */
 				local_pos_sp.x = local_pos_sp_x;
 				local_pos_sp.y = local_pos_sp_y;
@@ -287,7 +317,7 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 				if((isfinite(local_pos_sp.x)) && (isfinite(local_pos_sp.y)) && (isfinite(local_pos_sp.z))){
 					orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
 				}
-				printf("[posCTRL] local_pos_sp.z: %8.4f\n", (double)(local_pos_sp_z));
+				printf("[posCTRL] vel_limit: %8.4f\n", (double)(vel_limit));
 			}						}
 			if (fds[0].revents & POLLIN) {
 				/* new sensor value */
@@ -315,11 +345,20 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 					if(fabs(manual.roll) > pos_params.sp_gain_xy_threshold){
 						local_pos_sp_y += manual.roll*pos_params.sp_gain_xy;
 					}
+					/* publish local position setpoint */
 					local_pos_sp.x = local_pos_sp_x;
 					local_pos_sp.y = local_pos_sp_y;
 					local_pos_sp.timestamp = hrt_absolute_time();
 					if((isfinite(local_pos_sp.x)) && (isfinite(local_pos_sp.y)) && (isfinite(local_pos_sp.z))){
 						orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
+					}
+					/* publish global position setpoint */
+					global_pos_sp.lat = (int32_t)(global_pos_sp_lat * 1E7);
+					global_pos_sp.lon = (int32_t)(global_pos_sp_lon * 1E7);
+					global_pos_sp.altitude = global_pos_sp_alt;
+					global_pos_sp.timestamp = hrt_absolute_time();
+					if((isfinite(global_pos_sp_lat)) && (isfinite(global_pos_sp_lon)) && (isfinite(global_pos_sp_alt))){
+						orb_publish(ORB_ID(vehicle_global_position_setpoint), global_pos_sp_pub, &global_pos_sp);
 					}
 
 					/* ROLL & PITCH REGLER */
