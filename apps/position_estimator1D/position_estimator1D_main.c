@@ -437,16 +437,12 @@ int position_estimator1D_thread_main(int argc, char *argv[])
 					}
 					kalman_dlqe3(dT_const_50,K[0],K[1],K[2],x_z_aposteriori_k,z_est,gpsUpdated,0.0f,0.0f,x_z_aposteriori);
 					memcpy(x_z_aposteriori_k, x_z_aposteriori, sizeof(x_z_aposteriori));
-					//kalman_dlqe2(dT_const_120,K[0],K[1],K[2],x_z_aposteriori_k,z_est,x_z_aposteriori);
-					//memcpy(x_z_aposteriori_k, x_z_aposteriori, sizeof(x_z_aposteriori));
 					local_pos_est.x = x_x_aposteriori_k[0];
 					local_pos_est.vx = x_x_aposteriori_k[1];
-					//local_pos_est.vx = local_pos_x; //getestet, funktioniert
 					local_pos_est.y = x_y_aposteriori_k[0];
 					local_pos_est.vy = x_y_aposteriori_k[1];
 					local_pos_est.z = x_z_aposteriori_k[0];
 					local_pos_est.vz = x_z_aposteriori_k[1];
-					//local_pos_est.vz = debug;
 					local_pos_est.timestamp = hrt_absolute_time();
 					if((isfinite(x_x_aposteriori_k[0])) && (isfinite(x_x_aposteriori_k[1])) && (isfinite(x_y_aposteriori_k[0])) && (isfinite(x_y_aposteriori_k[1])) && (isfinite(x_z_aposteriori_k[0])) && (isfinite(x_z_aposteriori_k[1]))){
 						orb_publish(ORB_ID(vehicle_local_position), local_pos_est_pub, &local_pos_est);
@@ -479,12 +475,10 @@ int position_estimator1D_thread_main(int argc, char *argv[])
 				memcpy(x_z_aposteriori_k, x_z_aposteriori, sizeof(x_z_aposteriori));
 				local_pos_est.x = x_x_aposteriori_k[0];
 				local_pos_est.vx = x_x_aposteriori_k[1];
-				//local_pos_est.vx = local_pos_x; //getestet, funktioniert
 				local_pos_est.y = x_y_aposteriori_k[0];
 				local_pos_est.vy = x_y_aposteriori_k[1];
 				local_pos_est.z = x_z_aposteriori_k[0];
 				local_pos_est.vz = x_z_aposteriori_k[1];
-				//local_pos_est.vz = debug;
 				local_pos_est.timestamp = hrt_absolute_time();
 				if((isfinite(x_x_aposteriori_k[0])) && (isfinite(x_x_aposteriori_k[1])) && (isfinite(x_y_aposteriori_k[0])) && (isfinite(x_y_aposteriori_k[1])) && (isfinite(x_z_aposteriori_k[0])) && (isfinite(x_z_aposteriori_k[1]))){
 					orb_publish(ORB_ID(vehicle_local_position), local_pos_est_pub, &local_pos_est);

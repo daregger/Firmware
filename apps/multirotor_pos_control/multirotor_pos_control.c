@@ -209,8 +209,20 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 	static float global_pos_sp_lon = 8.550134; /* degree lon */
 	static float global_pos_sp_alt = 520.0f; /* m AMSL */
 
-	static float vel_limit = 1.0f;
+	static float y_pos_err_earth = 0.0f;
+	static float x_pos_err_earth = 0.0f;
+	static const float y_vel_setpoint = 0.0f;
+	static const float x_vel_setpoint = 0.0f;
+	static float y_vel_err_earth = 0.0f;
+	static float x_vel_err_earth = 0.0f;
+
 	static bool local_flag_vel_limit_enable;
+	static float vel_limit_gain_xy = 0.0f;
+	static float vel_limit_gain_xy_threshold = 0.0f;
+	static float local_pos_sp_y_target = 0.0f;
+	static float local_pos_sp_x_target = 0.0f;
+
+	bool local_flag_useGPS = false;
 
 	static int printcounter = 0;
 
@@ -223,8 +235,8 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 	pos_ctrl_gain_p = pos_params.pos_p;
 	z_ctrl_gain_p = pos_params.height_p;
 	z_ctrl_gain_d = pos_params.height_d;
-	local_pos_sp_x = pos_params.loc_sp_x;
-	local_pos_sp_y = pos_params.loc_sp_y;
+	local_pos_sp_x_target = pos_params.loc_sp_x;
+	local_pos_sp_y_target = pos_params.loc_sp_y;
 	local_pos_sp_x_old = pos_params.loc_sp_x;
 	local_pos_sp_y_old = pos_params.loc_sp_y;
 	local_pos_sp_z = pos_params.loc_sp_z;
@@ -237,14 +249,16 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 	global_pos_sp.altitude = global_pos_sp_alt;
 	global_pos_sp.timestamp = hrt_absolute_time();
 	orb_publish(ORB_ID(vehicle_global_position_setpoint), global_pos_sp_pub, &global_pos_sp);
-	vel_limit = pos_params.vel_limit;
 	local_flag_vel_limit_enable = ((pos_params.vel_limit_enabled >= 0.9f) && (pos_params.vel_limit_enabled <= 1.1f));
+	vel_limit_gain_xy = pos_params.vel_limit_gain_xy;
+	vel_limit_gain_xy_threshold = pos_params.vel_limit_gain_xy_threshold;
 	/* only publish local_sp, not for controller use */
-	local_pos_sp.x = local_pos_sp_x;
-	local_pos_sp.y = local_pos_sp_y;
+	local_pos_sp.x = local_pos_sp_x_target;
+	local_pos_sp.y = local_pos_sp_y_target;
 	local_pos_sp.z = local_pos_sp_z;
 	local_pos_sp.timestamp = hrt_absolute_time();
 	orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
+	local_flag_useGPS = ((pos_params.useGPS >= 0.9f) && (pos_params.useGPS <= 1.1f));
 	/* END First parameter read at start up */
 
 	perf_counter_t interval_perf = perf_alloc(PC_INTERVAL, "multirotor_pos_control_interval");
@@ -282,13 +296,13 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 				 * only overwrite the values that changed from the parameter, not the ones from the rc setpoint movement*/
 				if(pos_params.loc_sp_x != local_pos_sp_x_old){
 					if((pos_params.loc_sp_x < 3.0f) && (pos_params.loc_sp_x > -2.5f)){
-						local_pos_sp_x = pos_params.loc_sp_x;
+						local_pos_sp_x_target = pos_params.loc_sp_x;
 						local_pos_sp_x_old = pos_params.loc_sp_x;
 					}
 				}
 				if(pos_params.loc_sp_y != local_pos_sp_y_old){
 					if((pos_params.loc_sp_y < 2.2f) && (pos_params.loc_sp_y > -2.0f)){
-						local_pos_sp_y = pos_params.loc_sp_y;
+						local_pos_sp_y_target = pos_params.loc_sp_y;
 						local_pos_sp_y_old = pos_params.loc_sp_y;
 					}
 				}
@@ -296,8 +310,9 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 				if((pos_params.loc_sp_z < 0.0f) && (pos_params.loc_sp_z > -2.0f)){
 					local_pos_sp_z = pos_params.loc_sp_z;
 				}
-				vel_limit = pos_params.vel_limit;
 				local_flag_vel_limit_enable = ((pos_params.vel_limit_enabled >= 0.9f) && (pos_params.vel_limit_enabled <= 1.1f));
+				vel_limit_gain_xy = pos_params.vel_limit_gain_xy;
+				vel_limit_gain_xy_threshold = pos_params.vel_limit_gain_xy_threshold;
 				global_pos_sp_lat = pos_params.glo_sp_lat;
 				global_pos_sp_lon = pos_params.glo_sp_lon;
 				global_pos_sp_alt = pos_params.glo_sp_alt;
@@ -310,15 +325,17 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 					orb_publish(ORB_ID(vehicle_global_position_setpoint), global_pos_sp_pub, &global_pos_sp);
 				}
 				/* only publish local_sp, not for controller use */
-				local_pos_sp.x = local_pos_sp_x;
-				local_pos_sp.y = local_pos_sp_y;
-				local_pos_sp.z = local_pos_sp_z;
-				local_pos_sp.timestamp = hrt_absolute_time();
-				if((isfinite(local_pos_sp.x)) && (isfinite(local_pos_sp.y)) && (isfinite(local_pos_sp.z))){
-					orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
-				}
-				printf("[posCTRL] vel_limit: %8.4f\n", (double)(vel_limit));
-			}						}
+				//local_pos_sp.x = local_pos_sp_x;
+				//local_pos_sp.y = local_pos_sp_y;
+				//local_pos_sp.z = local_pos_sp_z;
+				//local_pos_sp.timestamp = hrt_absolute_time();
+				//if((isfinite(local_pos_sp.x)) && (isfinite(local_pos_sp.y)) && (isfinite(local_pos_sp.z))){
+				//	orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
+				//}
+				//printf("[posCTRL] vel_limit_local: %8.4f\n", (double)(vel_limit_local));
+				local_flag_useGPS = ((pos_params.useGPS >= 0.9f) && (pos_params.useGPS <= 1.1f));
+				//printf("[posCTRL] local_flag_useGPS %s", local_flag_useGPS ? "true" : "false");
+			}
 			if (fds[0].revents & POLLIN) {
 				/* new sensor value */
 				/*float dT = (hrt_absolute_time() - last_time) / 1000000.0f;
@@ -329,7 +346,6 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 					}
 					printcounter++;
 				*/
-
 				orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
 				orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 				orb_copy(ORB_ID(vehicle_local_position), local_pos_est_sub, &local_pos_est);
@@ -338,13 +354,39 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 				orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensors);
 
 				if (vehicle_status.state_machine == SYSTEM_STATE_AUTO) {
-					/* move around earth position setpoint with RC roll/pitch */
+					/* move around local position setpoint with RC roll/pitch */
 					if(fabs(manual.pitch) > pos_params.sp_gain_xy_threshold){
-						local_pos_sp_x += -manual.pitch*pos_params.sp_gain_xy;
+						local_pos_sp_x_target += -manual.pitch*pos_params.sp_gain_xy;
 					}
 					if(fabs(manual.roll) > pos_params.sp_gain_xy_threshold){
-						local_pos_sp_y += manual.roll*pos_params.sp_gain_xy;
+						local_pos_sp_y_target += manual.roll*pos_params.sp_gain_xy;
 					}
+					/* if speed limit enabled then move around local setpoint with speed defined by vel_limit_gain_xy
+					 * as long as the setpoint is not in the target zone (size defined by vel_limit_gain_xy_threshold) */
+					if(local_flag_vel_limit_enable){
+						if(fabs(local_pos_sp_y_target-local_pos_sp_y)>vel_limit_gain_xy_threshold){
+							if(local_pos_sp_y_target>local_pos_sp_y){
+								local_pos_sp_y += (pos_params.vel_limit_gain_xy/260.0f);
+							}else{
+								local_pos_sp_y -= (pos_params.vel_limit_gain_xy/260.0f);
+							}
+						}
+						if(fabs(local_pos_sp_x_target-local_pos_sp_x)>vel_limit_gain_xy_threshold){
+							if(local_pos_sp_x_target>local_pos_sp_x){
+								local_pos_sp_x += (pos_params.vel_limit_gain_xy*260.0f);
+							}else{
+								local_pos_sp_x -= (pos_params.vel_limit_gain_xy*260.0f);
+							}
+						}
+					}else{
+						local_pos_sp_y = local_pos_sp_y_target;
+						local_pos_sp_x = local_pos_sp_x_target;
+					}
+					/* ROLL & PITCH REGLER */
+					y_pos_err_earth = -(local_pos_est.y - local_pos_sp_y);
+					x_pos_err_earth = (local_pos_est.x - local_pos_sp_x);
+					y_vel_err_earth = -(local_pos_est.vy - y_vel_setpoint);
+					x_vel_err_earth = (local_pos_est.vx - x_vel_setpoint);
 					/* publish local position setpoint */
 					local_pos_sp.x = local_pos_sp_x;
 					local_pos_sp.y = local_pos_sp_y;
@@ -360,25 +402,18 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 					if((isfinite(global_pos_sp_lat)) && (isfinite(global_pos_sp_lon)) && (isfinite(global_pos_sp_alt))){
 						orb_publish(ORB_ID(vehicle_global_position_setpoint), global_pos_sp_pub, &global_pos_sp);
 					}
-
-					/* ROLL & PITCH REGLER */
-					float y_pos_setpoint = local_pos_sp_y;
-					float x_pos_setpoint = local_pos_sp_x;
-					float y_pos_err_earth = -(local_pos_est.y - y_pos_setpoint);
-					float x_pos_err_earth = (local_pos_est.x - x_pos_setpoint);
-					float y_vel_setpoint = 0.0f;
-					float x_vel_setpoint = 0.0f;
-					float y_vel_err_earth = -(local_pos_est.vy - y_vel_setpoint);
-					float x_vel_err_earth = (local_pos_est.vx - x_vel_setpoint);
-					/* rotMatrix is from body to earth*/
-					/*rotMatrix[0] = cos(vicon_pos.yaw);
-					rotMatrix[1] = -sin(vicon_pos.yaw);
-					rotMatrix[2] = sin(vicon_pos.yaw);
-					rotMatrix[3] = cos(vicon_pos.yaw);*/
-					rotMatrix[0] = cos(att.yaw);
-					rotMatrix[1] = -sin(att.yaw);
-					rotMatrix[2] = sin(att.yaw);
-					rotMatrix[3] = cos(att.yaw);
+					/* rotMatrix is from body to earth */
+					if(local_flag_useGPS){
+						rotMatrix[0] = cos(att.yaw);
+						rotMatrix[1] = -sin(att.yaw);
+						rotMatrix[2] = sin(att.yaw);
+						rotMatrix[3] = cos(att.yaw);
+					}else{
+						rotMatrix[0] = cos(vicon_pos.yaw);
+						rotMatrix[1] = -sin(vicon_pos.yaw);
+						rotMatrix[2] = sin(vicon_pos.yaw);
+						rotMatrix[3] = cos(vicon_pos.yaw);
+					}
 					/* PD regler im earth frame, different sign because of Transformation from earth to body frame */
 					float rollpos = (rotMatrix[0]*y_pos_err_earth-rotMatrix[1]*x_pos_err_earth)*pos_ctrl_gain_p;
 					float rollvel = (rotMatrix[0]*y_vel_err_earth-rotMatrix[1]*x_vel_err_earth)*pos_ctrl_gain_d;
@@ -444,7 +479,7 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 					//OVERRIDE CONTROLLER
 					//att_sp.roll_body = manual.roll;
 					//att_sp.pitch_body = manual.pitch;
-					att_sp.thrust =  manual.throttle;
+					//att_sp.thrust =  manual.throttle;
 					//END OVERRIDE CONTROLLER
 
 					/* publish new attitude setpoint */
@@ -457,7 +492,7 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 				}
 			} /* end of poll call for sensor updates */
 		} /* end of poll return value check */
-
+	}
 	//mavlink_log_info(mavlink_fd, "[multirotor pos control] ending now...\n");
 	thread_running = false;
 	fflush(stdout);

@@ -55,7 +55,9 @@ struct multirotor_position_control_params {
 	float sp_gain_xy;
 	float sp_gain_xy_threshold;
 	float vel_limit_enabled;
-	float vel_limit;
+	float vel_limit_gain_xy;
+	float vel_limit_gain_xy_threshold;
+	float useGPS;
 };
 
 struct multirotor_position_control_param_handles {
@@ -72,7 +74,9 @@ struct multirotor_position_control_param_handles {
 	param_t sp_gain_xy_param_handle;
 	param_t sp_gain_xy_threshold_param_handle;
 	param_t vel_limit_enabled_param_handle;
-	param_t vel_limit_param_handle;
+	param_t vel_limit_gain_xy_param_handle;
+	param_t vel_limit_gain_xy_threshold_param_handle;
+	param_t useGPS_param_handle;
 };
 
 /**
