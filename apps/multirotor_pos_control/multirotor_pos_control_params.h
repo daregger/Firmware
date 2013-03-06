@@ -46,6 +46,8 @@ struct multirotor_position_control_params {
 	float pos_d;
 	float height_p;
 	float height_d;
+	float height_i;
+	float height_ff;
 	float loc_sp_x;
 	float loc_sp_y;
 	float loc_sp_z;
@@ -57,6 +59,8 @@ struct multirotor_position_control_params {
 	float vel_limit_enabled;
 	float vel_limit_gain_xy;
 	float vel_limit_gain_xy_threshold;
+	float vel_limit_gain_z;
+	float vel_limit_gain_z_threshold;
 	float useGPS;
 };
 
@@ -65,6 +69,8 @@ struct multirotor_position_control_param_handles {
 	param_t pos_d;
 	param_t height_p;
 	param_t height_d;
+	param_t height_i_param_handle;
+	param_t height_ff;
 	param_t loc_sp_x_param_handle;
 	param_t loc_sp_y_param_handle;
 	param_t loc_sp_z_param_handle;
@@ -76,6 +82,8 @@ struct multirotor_position_control_param_handles {
 	param_t vel_limit_enabled_param_handle;
 	param_t vel_limit_gain_xy_param_handle;
 	param_t vel_limit_gain_xy_threshold_param_handle;
+	param_t vel_limit_gain_z_param_handle;
+	param_t vel_limit_gain_z_threshold_param_handle;
 	param_t useGPS_param_handle;
 };
 
