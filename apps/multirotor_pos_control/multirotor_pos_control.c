@@ -291,21 +291,21 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 				 * only overwrite the values that changed from the qgc parameter setting,
 				 * not the ones from the rc setpoint movement */
 				if(pos_params.loc_sp_x != local_pos_sp_x_old){
-					if((pos_params.loc_sp_x < 3.0f) && (pos_params.loc_sp_x > -2.5f)){
+					//if((pos_params.loc_sp_x < 3.0f) && (pos_params.loc_sp_x > -2.5f)){
 						local_pos_sp_x_target = pos_params.loc_sp_x;
 						local_pos_sp_x_old = pos_params.loc_sp_x;
-					}
+					//}
 				}
 				if(pos_params.loc_sp_y != local_pos_sp_y_old){
-					if((pos_params.loc_sp_y < 2.2f) && (pos_params.loc_sp_y > -2.0f)){
+					//if((pos_params.loc_sp_y < 2.2f) && (pos_params.loc_sp_y > -2.0f)){
 						local_pos_sp_y_target = pos_params.loc_sp_y;
 						local_pos_sp_y_old = pos_params.loc_sp_y;
-					}
+					//}
 				}
 				/* z can be always written new */
-				if((pos_params.loc_sp_z < 0.0f) && (pos_params.loc_sp_z > -2.0f)){
+				//if((pos_params.loc_sp_z < 0.0f) && (pos_params.loc_sp_z > -2.0f)){
 					local_pos_sp_z = pos_params.loc_sp_z;
-				}
+				//}
 				local_flag_vel_limit_enable = ((pos_params.vel_limit_enabled >= 0.9f) && (pos_params.vel_limit_enabled <= 1.1f));
 				vel_limit_gain_xy = pos_params.vel_limit_gain_xy;
 				vel_limit_gain_xy_threshold = pos_params.vel_limit_gain_xy_threshold;
@@ -370,6 +370,7 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 					/* publish local position setpoint */
 					local_pos_sp.x = local_pos_sp_x;
 					local_pos_sp.y = local_pos_sp_y;
+					local_pos_sp.z = local_pos_sp_z;
 					local_pos_sp.timestamp = hrt_absolute_time();
 					if((isfinite(local_pos_sp.x)) && (isfinite(local_pos_sp.y)) && (isfinite(local_pos_sp.z))){
 						orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
@@ -469,6 +470,7 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 					perf_count(interval_perf);
 				} else {
 					//manual control
+					/* test */
 				}
 			} /* end of poll call for sensor updates */
 		} /* end of poll return value check */
