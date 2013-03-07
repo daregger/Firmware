@@ -232,6 +232,15 @@ int create_logfolder(char *folder_path)
 			sprintf(mfile_out, "%s/session%04u/run_to_plot_data.m", mountpoint, foldernumber);
 			int ret = file_copy(mfile_in, mfile_out);
 
+			/* show the foldernumber in communication console */
+			char *numberstart = "[sdlog] writing into folder session";
+			char number[15];
+			sprintf(number, "%04u", foldernumber);
+			char str[80];
+			strcpy(str,numberstart);
+			strcat(str,number);
+			mavlink_log_info(mavlink_fd, str);
+
 			if (!ret) {
 				warnx("copied m file to %s", mfile_out);
 
