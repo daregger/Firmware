@@ -198,8 +198,8 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 	static float z_ctrl_gain_i = 0.0f;
 	static float z_ctrl_integral = 0.0f;
 	static float z_ctrl_thrust_feedforward = 0.65f; /* approx. hoovering thrust for 1800mAh Akku*/
-	const float pitch_limit = 0.33f;
-	const float roll_limit = 0.33f;
+	const float pitch_limit = 0.28f;
+	const float roll_limit = 0.28f;
 	const float thrust_limit_upper = 0.5f;
 	const float thrust_limit_lower = 0.3f;
 	static float local_pos_sp_x = 0.0f;
@@ -437,7 +437,6 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 						att_sp.yaw_body = att.yaw;
 					}
 					//att_sp.yaw_body = 0.0f;
-					//printf("[multirotor_pos_control] vicon_pos.yaw: %8.4f\n", (double)(vicon_pos.yaw));
 
 					/* Z REGLER, PD mit Feedforward */
 					float z_vel_setpoint = 0.0f;
@@ -461,12 +460,6 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 					}
 					att_sp.timestamp = hrt_absolute_time();
 
-					//OVERRIDE CONTROLLER
-					//att_sp.roll_body = manual.roll;
-					//att_sp.pitch_body = manual.pitch;
-					//att_sp.thrust =  manual.throttle;
-					//END OVERRIDE CONTROLLER
-
 					/* publish local position setpoint */
 					local_pos_sp.x = local_pos_sp_x;
 					local_pos_sp.y = local_pos_sp_y;
@@ -483,9 +476,14 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 					if((isfinite(global_pos_sp_lat)) && (isfinite(global_pos_sp_lon)) && (isfinite(global_pos_sp_alt))){
 						orb_publish(ORB_ID(vehicle_global_position_setpoint), global_pos_sp_pub, &global_pos_sp);
 					}
+
+					//OVERRIDE CONTROLLER
+					//att_sp.roll_body = manual.roll;
+					//att_sp.pitch_body = manual.pitch;
+					//att_sp.thrust =  manual.throttle;
+					//END OVERRIDE CONTROLLER
 					/* publish new attitude setpoint */
 					orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
-
 					/* measure in what intervals the controller runs */
 					perf_count(interval_perf);
 				} else {
