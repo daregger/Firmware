@@ -182,7 +182,6 @@ int position_estimator1D_thread_main(int argc, char *argv[])
 	const static float dT_const_120 = 1.0f/120.0f;
 	const static float dT_const_50 = 1.0f/50.0f;
 
-	//static float posUpdateFreq = 50.0f;
 	static float addNoise = 0.0f;
 	static float sigma = 0.0f;
 	//computed from dlqe in matlab
@@ -265,7 +264,6 @@ int position_estimator1D_thread_main(int argc, char *argv[])
 	parameters_update(&pos1D_param_handles, &pos1D_params);
 	local_flag_useBARO = ((pos1D_params.useBARO >= 0.9f) && (pos1D_params.useBARO <= 1.1f));
 	local_flag_useGPS = ((pos1D_params.useGPS >= 0.9f) && (pos1D_params.useGPS <= 1.1f));
-	viconCntMax = (int)(pos1D_params.viconDivider);
 	sigma = pos1D_params.sigma;
 	addNoise = pos1D_params.addNoise;
 	/* END FIRST PARAMETER UPDATE */
@@ -363,7 +361,6 @@ int position_estimator1D_thread_main(int argc, char *argv[])
 				parameters_update(&pos1D_param_handles, &pos1D_params);
 				local_flag_useBARO = ((pos1D_params.useBARO >= 0.9f) && (pos1D_params.useBARO <= 1.1f));
 				local_flag_useGPS = ((pos1D_params.useGPS >= 0.9f) && (pos1D_params.useGPS <= 1.1f));
-				viconCntMax = (int)(pos1D_params.viconDivider);
 				sigma = pos1D_params.sigma;
 				addNoise = pos1D_params.addNoise;
 			}

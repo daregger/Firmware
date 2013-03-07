@@ -197,6 +197,7 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 	static float z_ctrl_gain_d = 0.6f;
 	static float z_ctrl_gain_i = 0.0f;
 	static float z_ctrl_integral = 0.0f;
+	static float z_ctrl_antiwindup = 0.05f;
 	static float z_ctrl_thrust_feedforward = 0.65f; /* approx. hoovering thrust for 1800mAh Akku*/
 	const float pitch_limit = 0.28f;
 	const float roll_limit = 0.28f;
@@ -238,6 +239,7 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 	z_ctrl_gain_p = pos_params.height_p;
 	z_ctrl_gain_d = pos_params.height_d;
 	z_ctrl_gain_i = pos_params.height_i;
+	z_ctrl_antiwindup = pos_params.height_i_antiwindup;
 	z_ctrl_thrust_feedforward = pos_params.height_ff;
 	local_pos_sp_x_target = pos_params.loc_sp_x;
 	local_pos_sp_y_target = pos_params.loc_sp_y;
@@ -297,6 +299,7 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 				z_ctrl_gain_p = pos_params.height_p;
 				z_ctrl_gain_d = pos_params.height_d;
 				z_ctrl_gain_i = pos_params.height_i;
+				z_ctrl_antiwindup = pos_params.height_i_antiwindup;
 				z_ctrl_thrust_feedforward = pos_params.height_ff;
 				/* write local_pos_sp and limit them to vicon space size
 				 * only overwrite the values that changed from the qgc parameter setting,
@@ -441,7 +444,9 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 					/* Z REGLER, PD mit Feedforward */
 					float z_vel_setpoint = 0.0f;
 					float z_pos_err_earth = (local_pos_est.z - local_pos_sp_z);
-					z_ctrl_integral += z_pos_err_earth;
+					if(fabs(z_ctrl_integral)<z_ctrl_antiwindup){
+						z_ctrl_integral += z_pos_err_earth;
+					}
 					float z_vel_err_earth = (local_pos_est.vz - z_vel_setpoint);
 					float z_ctrl_thrust_err = z_pos_err_earth*z_ctrl_gain_p + z_vel_err_earth*z_ctrl_gain_d + z_ctrl_integral*z_ctrl_gain_i;
 					float z_ctrl_thrust = z_ctrl_thrust_feedforward + z_ctrl_thrust_err;

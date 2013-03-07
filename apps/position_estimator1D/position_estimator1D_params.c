@@ -43,54 +43,29 @@
 #include "position_estimator1D_params.h"
 
 /* Kalman Filter covariances */
-
-/* gps process noise */
-PARAM_DEFINE_FLOAT(POS_EST_Q11, 1e-1f);
-PARAM_DEFINE_FLOAT(POS_EST_Q22, 1e-1f);
-PARAM_DEFINE_FLOAT(POS_EST_Q33, 0.0f);
-
 /* gps measurement noise standard deviation */
 PARAM_DEFINE_FLOAT(POS_EST_addNoise, 1.0f);
 PARAM_DEFINE_FLOAT(POS_EST_SIGMA, 0.0f);
-PARAM_DEFINE_FLOAT(POS_EST_viconDiv, 50.0f);
 PARAM_DEFINE_FLOAT(POS_EST_R, 1.0f);
 PARAM_DEFINE_FLOAT(POS_EST_useGPS, 0.0f);
 PARAM_DEFINE_FLOAT(POS_EST_useBARO, 0.0f);
-PARAM_DEFINE_FLOAT(POS_EST_accThres, 0.1f);
-PARAM_DEFINE_FLOAT(POS_EST_flyingT, 230.0f);
-PARAM_DEFINE_FLOAT(POS_EST_velDecay, 0.995f);
 
 int parameters_init(struct position_estimator1D_param_handles *h)
 {
-	/* Kalman Filter Parameter*/
-	h->q11 	=	param_find("POS_EST_Q11");
-	h->q22 	=	param_find("POS_EST_Q22");
-	h->q33 	=	param_find("POS_EST_Q33");
 	h->addNoise	= param_find("POS_EST_addNoise");
 	h->sigma = param_find("POS_EST_SIGMA");
 	h->r = param_find("POS_EST_R");
 	h->useGPS_param_handle = param_find("POS_EST_useGPS");
 	h->useBARO_param_handle = param_find("POS_EST_useBARO");
-	h->viconDivider_param_handle = param_find("POS_EST_viconDiv");
-	h->accThreshold_param_handle = param_find("POS_EST_accThres");
-	h->flyingThreshold_param_handle = param_find("POS_EST_flyingT");
-	h->velDecay_param_handle = param_find("POS_EST_velDecay");
 	return OK;
 }
 
 int parameters_update(const struct position_estimator1D_param_handles *h, struct position_estimator1D_params *p)
 {
-	param_get(h->q11, &(p->QQ[0]));
-	param_get(h->q22, &(p->QQ[1]));
-	param_get(h->q33, &(p->QQ[2]));
 	param_get(h->addNoise, &(p->addNoise));
 	param_get(h->sigma, &(p->sigma));
 	param_get(h->r, &(p->R));
 	param_get(h->useGPS_param_handle, &(p->useGPS));
 	param_get(h->useBARO_param_handle, &(p->useBARO));
-	param_get(h->viconDivider_param_handle, &(p->viconDivider));
-	param_get(h->accThreshold_param_handle, &(p->accThres));
-	param_get(h->flyingThreshold_param_handle, &(p->flyingT));
-	param_get(h->velDecay_param_handle, &(p->velDecay));
 	return OK;
 }

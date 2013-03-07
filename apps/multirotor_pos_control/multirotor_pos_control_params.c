@@ -49,6 +49,7 @@ PARAM_DEFINE_FLOAT(POS_XY_D, 0.8f);
 PARAM_DEFINE_FLOAT(POS_Z_P, 0.8f);
 PARAM_DEFINE_FLOAT(POS_Z_D, 0.8f);
 PARAM_DEFINE_FLOAT(POS_Z_I, 0.0f);
+PARAM_DEFINE_FLOAT(POS_Z_I_AW, 0.05f);
 PARAM_DEFINE_FLOAT(POS_Z_ff, 0.65f);
 PARAM_DEFINE_FLOAT(POS_loc_sp_x, 0.0f);
 PARAM_DEFINE_FLOAT(POS_loc_sp_y, 0.0f);
@@ -73,6 +74,7 @@ int parameters_init(struct multirotor_position_control_param_handles *h)
 	h->height_p =	param_find("POS_Z_P");
 	h->height_d =	param_find("POS_Z_D");
 	h->height_i_param_handle =	param_find("POS_Z_I");
+	h->height_i_antiwindup_param_handle = param_find("POS_Z_I_AW");
 	h->height_ff =	param_find("POS_Z_ff");
 	h->loc_sp_x_param_handle = param_find("POS_loc_sp_x");
 	h->loc_sp_y_param_handle = param_find("POS_loc_sp_y");
@@ -98,6 +100,7 @@ int parameters_update(const struct multirotor_position_control_param_handles *h,
 	param_get(h->height_p, &(p->height_p));
 	param_get(h->height_d, &(p->height_d));
 	param_get(h->height_i_param_handle, &(p->height_i));
+	param_get(h->height_i_antiwindup_param_handle, &(p->height_i_antiwindup));
 	param_get(h->height_ff, &(p->height_ff));
 	param_get(h->loc_sp_x_param_handle, &(p->loc_sp_x));
 	param_get(h->loc_sp_y_param_handle, &(p->loc_sp_y));
