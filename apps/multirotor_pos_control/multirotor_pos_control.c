@@ -184,11 +184,13 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 	int global_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
 	int local_pos_est_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	int local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
+	//int global_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
 
 	/* publish attitude setpoint */
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
-	orb_advert_t local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &local_pos_sp);
-	orb_advert_t global_pos_sp_pub = orb_advertise(ORB_ID(vehicle_global_position_setpoint), &global_pos_sp);
+	//orb_advert_t local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &local_pos_sp);
+	//orb_advert_t global_pos_sp_pub = orb_advertise(ORB_ID(vehicle_global_position_setpoint), &global_pos_sp);
 
 	static float rotMatrix[4] = {1.0f,  0.0f, 0.0f,  1.0f};
 	static float pos_ctrl_gain_p = 0.8f;
@@ -262,24 +264,25 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 	vel_limit_gain_z_threshold = pos_params.vel_limit_gain_z_threshold;
 	local_flag_useGPS = ((pos_params.useGPS >= 0.9f) && (pos_params.useGPS <= 1.1f));
 	/* END First parameter read at start up */
-	/* only publish local_sp, not for controller use */
+	/* only publish local_sp, not for controller use
 	local_pos_sp.x = local_pos_sp_x_target;
 	local_pos_sp.y = local_pos_sp_y_target;
 	local_pos_sp.z = local_pos_sp_z;
 	local_pos_sp.timestamp = hrt_absolute_time();
-	orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
-	/* only publish global_sp, not for controller use */
+	orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);*/
+	/* only publish global_sp, not for controller use
 	global_pos_sp.lat = (int32_t)(global_pos_sp_lat * 1E7);
 	global_pos_sp.lon = (int32_t)(global_pos_sp_lon * 1E7);
 	global_pos_sp.altitude = global_pos_sp_alt;
 	global_pos_sp.timestamp = hrt_absolute_time();
-	orb_publish(ORB_ID(vehicle_global_position_setpoint), global_pos_sp_pub, &global_pos_sp);
+	orb_publish(ORB_ID(vehicle_global_position_setpoint), global_pos_sp_pub, &global_pos_sp);*/
 
 	perf_counter_t interval_perf = perf_alloc(PC_INTERVAL, "multirotor_pos_control_interval");
 	perf_counter_t mc_err_perf = perf_alloc(PC_COUNT, "multirotor_pos_control_err");
-	struct pollfd fds[2] = {
+	struct pollfd fds[3] = {
 					{ .fd = sensor_sub, .events = POLLIN }, //ca. 130 Hz
 					{ .fd = sub_params,   .events = POLLIN },
+					{ .fd = local_pos_sp_sub,   .events = POLLIN },
 				};
 	thread_running = true;
 	uint64_t last_time = 0;
@@ -339,6 +342,12 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 				//printf("[posCTRL] vel_limit_local: %8.4f\n", (double)(vel_limit_local));
 				local_flag_useGPS = ((pos_params.useGPS >= 0.9f) && (pos_params.useGPS <= 1.1f));
 				//printf("[posCTRL] local_flag_useGPS %s", local_flag_useGPS ? "true" : "false");
+			}
+			if (fds[2].revents & POLLIN) {
+				/* new local position setpoint */
+				orb_copy(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_sub, &local_pos_sp);
+				local_pos_sp_y_target = local_pos_sp.y;
+				local_pos_sp_x_target = local_pos_sp.x;
 			}
 			if (fds[0].revents & POLLIN) {
 				/* new sensor value */
@@ -452,12 +461,12 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 					}
 
 					/* YAW REGLER */
-					if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {
+					/*if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {
 						att_sp.yaw_body = att_sp.yaw_body + manual.yaw * 0.0025f;
 						} else if (manual.throttle <= 0.3f) {
 						att_sp.yaw_body = att.yaw;
-					}
-					//att_sp.yaw_body = 0.0f;
+					}*/
+					att_sp.yaw_body = 0.0f;
 
 					/* Z REGLER, PD mit Feedforward */
 					float z_vel_setpoint = 0.0f;
@@ -484,21 +493,21 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 					att_sp.timestamp = hrt_absolute_time();
 
 					/* publish local position setpoint */
-					local_pos_sp.x = local_pos_sp_x;
+					/*local_pos_sp.x = local_pos_sp_x;
 					local_pos_sp.y = local_pos_sp_y;
 					local_pos_sp.z = local_pos_sp_z;
 					local_pos_sp.timestamp = hrt_absolute_time();
 					if((isfinite(local_pos_sp.x)) && (isfinite(local_pos_sp.y)) && (isfinite(local_pos_sp.z))){
 						orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
-					}
+					}*/
 					/* publish global position setpoint */
-					global_pos_sp.lat = (int32_t)(global_pos_sp_lat * 1E7);
+					/*global_pos_sp.lat = (int32_t)(global_pos_sp_lat * 1E7);
 					global_pos_sp.lon = (int32_t)(global_pos_sp_lon * 1E7);
 					global_pos_sp.altitude = global_pos_sp_alt;
 					global_pos_sp.timestamp = hrt_absolute_time();
 					if((isfinite(global_pos_sp_lat)) && (isfinite(global_pos_sp_lon)) && (isfinite(global_pos_sp_alt))){
 						orb_publish(ORB_ID(vehicle_global_position_setpoint), global_pos_sp_pub, &global_pos_sp);
-					}
+					}*/
 
 					//OVERRIDE CONTROLLER
 					//att_sp.roll_body = manual.roll;
