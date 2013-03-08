@@ -82,7 +82,7 @@ enum MAVLINK_WPM_CODES {
 #define MAVLINK_WPM_MAX_WP_COUNT 15
 #define MAVLINK_WPM_CONFIG_IN_FLIGHT_UPDATE				  ///< Enable double buffer and in-flight updates
 #ifndef MAVLINK_WPM_TEXT_FEEDBACK
-#define MAVLINK_WPM_TEXT_FEEDBACK 0						  ///< Report back status information as text
+#define MAVLINK_WPM_TEXT_FEEDBACK 1						  ///< Report back status information as text
 #endif
 #define MAVLINK_WPM_PROTOCOL_TIMEOUT_DEFAULT 5000000         ///< Protocol communication timeout in useconds
 #define MAVLINK_WPM_SETPOINT_DELAY_DEFAULT 1000000           ///< When to send a new setpoint
