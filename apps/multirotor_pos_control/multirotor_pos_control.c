@@ -193,6 +193,10 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 	static float rotMatrix[4] = {1.0f,  0.0f, 0.0f,  1.0f};
 	static float pos_ctrl_gain_p = 0.8f;
 	static float pos_ctrl_gain_d = 0.8f;
+	static float pos_ctrl_gain_i = 0.0f;
+	static float pos_ctrl_integral_x = 0.0f;
+	static float pos_ctrl_integral_y = 0.0f;
+	static float pos_ctrl_antiwindup = 0.05f;
 	static float z_ctrl_gain_p = 0.8f;
 	static float z_ctrl_gain_d = 0.6f;
 	static float z_ctrl_gain_i = 0.0f;
@@ -236,6 +240,8 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 	/* First parameter read at start up */
 	pos_ctrl_gain_d = pos_params.pos_d;
 	pos_ctrl_gain_p = pos_params.pos_p;
+	pos_ctrl_gain_i = pos_params.pos_i;
+	pos_ctrl_antiwindup = pos_params.pos_i_antiwindup;
 	z_ctrl_gain_p = pos_params.height_p;
 	z_ctrl_gain_d = pos_params.height_d;
 	z_ctrl_gain_i = pos_params.height_i;
@@ -296,6 +302,8 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 				parameters_update(&handle_pos_params, &pos_params);
 				pos_ctrl_gain_d = pos_params.pos_d;
 				pos_ctrl_gain_p = pos_params.pos_p;
+				pos_ctrl_gain_i = pos_params.pos_i;
+				pos_ctrl_antiwindup = pos_params.pos_i_antiwindup;
 				z_ctrl_gain_p = pos_params.height_p;
 				z_ctrl_gain_d = pos_params.height_d;
 				z_ctrl_gain_i = pos_params.height_i;
@@ -386,11 +394,19 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 						local_pos_sp_x = local_pos_sp_x_target;
 						local_pos_sp_z = local_pos_sp_z_target;
 					}
+
 					/* ROLL & PITCH REGLER */
 					y_pos_err_earth = -(local_pos_est.y - local_pos_sp_y);
 					x_pos_err_earth = (local_pos_est.x - local_pos_sp_x);
 					y_vel_err_earth = -(local_pos_est.vy - y_vel_setpoint);
 					x_vel_err_earth = (local_pos_est.vx - x_vel_setpoint);
+					/* limit xy intergrator */
+					if(fabs(pos_ctrl_integral_x)<pos_ctrl_antiwindup){
+						pos_ctrl_integral_x += x_pos_err_earth;
+					}
+					if(fabs(pos_ctrl_integral_y)<pos_ctrl_antiwindup){
+						pos_ctrl_integral_y += y_pos_err_earth;
+					}
 					/* rotMatrix is from body to earth */
 					if(local_flag_useGPS){
 						rotMatrix[0] = cos(att.yaw);
@@ -406,10 +422,12 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 					/* PD regler im earth frame, different sign because of Transformation from earth to body frame */
 					float rollpos = (rotMatrix[0]*y_pos_err_earth-rotMatrix[1]*x_pos_err_earth)*pos_ctrl_gain_p;
 					float rollvel = (rotMatrix[0]*y_vel_err_earth-rotMatrix[1]*x_vel_err_earth)*pos_ctrl_gain_d;
+					float rollint = (rotMatrix[0]*pos_ctrl_integral_y-rotMatrix[1]*pos_ctrl_integral_x)*pos_ctrl_gain_i;
 					float pitchpos = (-rotMatrix[2]*y_pos_err_earth+rotMatrix[3]*x_pos_err_earth)*pos_ctrl_gain_p;
 					float pitchvel = (-rotMatrix[2]*y_vel_err_earth+rotMatrix[3]*x_vel_err_earth)*pos_ctrl_gain_d;
-					float rolltot = rollpos + rollvel;
-					float pitchtot = pitchpos + pitchvel;
+					float pitchint = (-rotMatrix[2]*pos_ctrl_integral_y+rotMatrix[3]*pos_ctrl_integral_x)*pos_ctrl_gain_i;;
+					float rolltot = rollpos + rollvel + rollint;
+					float pitchtot = pitchpos + pitchvel + pitchint;
 
 					/* limit setpoints to maximal the values of the manual flight*/
 					if((rolltot <= roll_limit) && (rolltot >= -roll_limit)){
