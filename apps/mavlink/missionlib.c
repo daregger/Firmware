@@ -132,10 +132,12 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		float param2, float param3, float param4, float param5_lat_x,
 		float param6_lon_y, float param7_alt_z, uint8_t frame, uint16_t command)
 {
+
 	static orb_advert_t global_position_setpoint_pub = -1;
 	static orb_advert_t local_position_setpoint_pub = -1;
 	char buf[50] = {0};
-
+	//printf("XXXXXXXXXXXXXXXXXXX[posCTRL] IN CURRENT WAYPOINT CHANGED\n");
+	mavlink_missionlib_send_gcs_string("XXX IN CURRENT WAYPOINT CHANGED\n");
 	/* Update controller setpoints */
 	if (frame == (int)MAV_FRAME_GLOBAL) {
 		/* global, absolute waypoint */
@@ -150,12 +152,16 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		/* Initialize publication if necessary */
 		if (global_position_setpoint_pub < 0) {
 			global_position_setpoint_pub = orb_advertise(ORB_ID(vehicle_global_position_setpoint), &sp);
-
+			//printf("XXXXXXXXXX IF = YES\n");
+			mavlink_missionlib_send_gcs_string("XXX ADVERTISE\n");
 		} else {
 			orb_publish(ORB_ID(vehicle_global_position_setpoint), global_position_setpoint_pub, &sp);
+			//printf("XXXXXXXXXX IF = NO\n");
+			mavlink_missionlib_send_gcs_string("XXX PUBLISH\n");
 		}
 
-		sprintf(buf, "[mp] WP#%i lat: % 3.6f/lon % 3.6f/alt % 4.6f/hdg %3.4f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
+		//sprintf(buf, "XXXXXXX [mp] WP#%i lat: % 3.6f/lon % 3.6f/alt % 4.6f/hdg %3.4f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
+		//mavlink_missionlib_send_gcs_string("ERROR: Waypoint index out of bounds\n");
 
 	} else if (frame == (int)MAV_FRAME_GLOBAL_RELATIVE_ALT) {
 		/* global, relative alt (in relation to HOME) waypoint */

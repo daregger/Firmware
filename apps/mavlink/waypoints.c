@@ -81,7 +81,6 @@ void mavlink_wpm_init(mavlink_wpm_storage *state)
 	state->pos_reached = false;						///< boolean for position reached
 	state->timestamp_lastoutside_orbit = 0;///< timestamp when the MAV was last outside the orbit or had the wrong yaw value
 	state->timestamp_firstinside_orbit = 0;///< timestamp when the MAV was the first time after a waypoint change inside the orbit and had the correct yaw value
-
 }
 
 /*
@@ -156,6 +155,8 @@ void mavlink_wpm_send_setpoint(uint16_t seq)
 {
 	if (seq < wpm->size) {
 		mavlink_mission_item_t *cur = &(wpm->waypoints[seq]);
+		//printf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX [posCTRL] BEFORE CURRENT WAYPOINT CHANGED\n");
+		//mavlink_missionlib_send_gcs_string("XXX BEFORE CURRENT WAYPOINT CHANGED\n");
 		mavlink_missionlib_current_waypoint_changed(cur->seq, cur->param1,
 				cur->param2, cur->param3, cur->param4, cur->x,
 				cur->y, cur->z, cur->frame, cur->command);
