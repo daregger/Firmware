@@ -46,6 +46,7 @@ end
 % float diff_pressure; - pressure difference in millibar
 % float ind_airspeed;
 % float true_airspeed;
+% float attitude_setpoint[3];		/**< roll, pitch, yaw [rad] */
 
 % Definition of the logged values
 logFormat{1} = struct('name', 'timestamp',             'bytes', 8, 'array', 1, 'precision', 'uint64',  'machineformat', 'ieee-le.l64');
@@ -74,6 +75,7 @@ logFormat{23} = struct('name', 'optical_flow',         'bytes', 4, 'array', 6, '
 logFormat{24} = struct('name', 'diff_pressure',        'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
 logFormat{25} = struct('name', 'ind_airspeed',         'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
 logFormat{26} = struct('name', 'true_airspeed',        'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{27} = struct('name', 'attitude_setpoint',    'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
 
 % First get length of one line
 columns = length(logFormat);

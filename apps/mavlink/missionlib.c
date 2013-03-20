@@ -140,6 +140,7 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 	if (frame == (int)MAV_FRAME_GLOBAL) {
 		/* global, absolute waypoint */
 		struct vehicle_global_position_setpoint_s sp;
+		sp.timestamp = hrt_absolute_time();
 		sp.lat = param5_lat_x * 1e7f;
 		sp.lon = param6_lon_y * 1e7f;
 		sp.altitude = param7_alt_z;
@@ -159,6 +160,7 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 	} else if (frame == (int)MAV_FRAME_GLOBAL_RELATIVE_ALT) {
 		/* global, relative alt (in relation to HOME) waypoint */
 		struct vehicle_global_position_setpoint_s sp;
+		sp.timestamp = hrt_absolute_time();
 		sp.lat = param5_lat_x * 1e7f;
 		sp.lon = param6_lon_y * 1e7f;
 		sp.altitude = param7_alt_z;
@@ -178,6 +180,7 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 	} else if (frame == (int)MAV_FRAME_LOCAL_ENU || frame == (int)MAV_FRAME_LOCAL_NED) {
 		/* local, absolute waypoint */
 		struct vehicle_local_position_setpoint_s sp;
+		sp.timestamp = hrt_absolute_time();
 		sp.x = param5_lat_x;
 		sp.y = param6_lon_y;
 		sp.z = param7_alt_z;

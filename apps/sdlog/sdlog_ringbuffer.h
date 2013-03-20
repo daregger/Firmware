@@ -63,6 +63,7 @@ struct sdlog_sysvector {
 	int32_t global_position_setpoint_xy[2];	/**< latitude [degrees] north, longitude [degrees] east */
 	float global_position_setpoint_z[2]; /**<  altitude above MSL [millimeter], yaw [radians] NED */
 	float attitude[3];		/**< roll, pitch, yaw [rad] */
+	float attitude_setpoint[3];		/**< roll, pitch, yaw [rad] */
 	float rotMatrix[9];		/**< unitvectors */
 	float vicon[6];			/**< Vicon ground truth x, y, z and roll, pitch, yaw */
 	float control_effective[4]; 	/**< roll, pitch, yaw [-1..1], thrust [0..1] */

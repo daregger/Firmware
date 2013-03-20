@@ -721,6 +721,7 @@ int sdlog_thread_main(int argc, char *argv[])
 					.global_position_setpoint_xy = {buf.global_pos_sp.lat, buf.global_pos_sp.lon},
 					.global_position_setpoint_z = {buf.global_pos_sp.altitude, buf.global_pos_sp.yaw},
 					.attitude = {buf.att.pitch, buf.att.roll, buf.att.yaw},
+					.attitude_setpoint = {buf.att_sp.pitch_body, buf.att_sp.roll_body, buf.att_sp.yaw_body},
 					.rotMatrix = {buf.att.R[0][0], buf.att.R[0][1], buf.att.R[0][2], buf.att.R[1][0], buf.att.R[1][1], buf.att.R[1][2], buf.att.R[2][0], buf.att.R[2][1], buf.att.R[2][2]},
 					.vicon = {buf.vicon_pos.x, buf.vicon_pos.y, buf.vicon_pos.z, buf.vicon_pos.roll, buf.vicon_pos.pitch, buf.vicon_pos.yaw},
 					.control_effective = {buf.act_controls_effective.control_effective[0], buf.act_controls_effective.control_effective[1], buf.act_controls_effective.control_effective[2], buf.act_controls_effective.control_effective[3]},
