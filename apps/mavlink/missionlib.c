@@ -73,6 +73,8 @@
 #include "mavlink_parameters.h"
 
 static uint8_t missionlib_msg_buf[MAVLINK_MAX_PACKET_LEN];
+static orb_advert_t global_position_setpoint_pub = -1;
+//static orb_advert_t local_position_setpoint_pub = -1;
 
 int
 mavlink_missionlib_send_message(mavlink_message_t *msg)
@@ -133,11 +135,10 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		float param6_lon_y, float param7_alt_z, uint8_t frame, uint16_t command)
 {
 
-	static orb_advert_t global_position_setpoint_pub = -1;
-	static orb_advert_t local_position_setpoint_pub = -1;
+
 	char buf[50] = {0};
-	//printf("XXXXXXXXXXXXXXXXXXX[posCTRL] IN CURRENT WAYPOINT CHANGED\n");
-	mavlink_missionlib_send_gcs_string("XXX IN CURRENT WAYPOINT CHANGED\n");
+	//printf("XXXXXX[posCTRL] FRAME = %8.4f\n",(double)(frame));
+	//mavlink_missionlib_send_gcs_string("XXX IN CURRENT WAYPOINT CHANGED\n");
 	/* Update controller setpoints */
 	if (frame == (int)MAV_FRAME_GLOBAL) {
 		/* global, absolute waypoint */
@@ -149,15 +150,21 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		sp.altitude_is_relative = false;
 		sp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
 
+		//printf("XXXXXXXXXXXXXXXXXXX[posCTRL] IN CURRENT WAYPOINT CHANGED\n");
+		//mavlink_missionlib_send_gcs_string("XXX IN CURRENT WAYPOINT CHANGED\n");
 		/* Initialize publication if necessary */
 		if (global_position_setpoint_pub < 0) {
 			global_position_setpoint_pub = orb_advertise(ORB_ID(vehicle_global_position_setpoint), &sp);
-			//printf("XXXXXXXXXX IF = YES\n");
-			mavlink_missionlib_send_gcs_string("XXX ADVERTISE\n");
+			//printf("XXXXXXXXXX ADVERTISE\n");
+			//mavlink_missionlib_send_gcs_string("XXX ADVERTISE\n");
+			//printf("XXXXXXXXXX ADVERTISE\n");
+			//mavlink_missionlib_send_gcs_string("XXX ADVERTISE\n");
 		} else {
 			orb_publish(ORB_ID(vehicle_global_position_setpoint), global_position_setpoint_pub, &sp);
-			//printf("XXXXXXXXXX IF = NO\n");
-			mavlink_missionlib_send_gcs_string("XXX PUBLISH\n");
+			//printf("XXXXXXXXXX PUBLISH\n");
+			//mavlink_missionlib_send_gcs_string("XXX PUBLISH\n");
+			//printf("XXXXXXXXXX PUBLISH\n");
+			//mavlink_missionlib_send_gcs_string("XXX PUBLISH\n");
 		}
 
 		//sprintf(buf, "XXXXXXX [mp] WP#%i lat: % 3.6f/lon % 3.6f/alt % 4.6f/hdg %3.4f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
@@ -193,12 +200,12 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		sp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
 
 		/* Initialize publication if necessary */
-		if (local_position_setpoint_pub < 0) {
+		/*if (local_position_setpoint_pub < 0) {
 			local_position_setpoint_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &sp);
 
 		} else {
 			orb_publish(ORB_ID(vehicle_local_position_setpoint), local_position_setpoint_pub, &sp);
-		}
+		}*/
 
 		sprintf(buf, "[mp] WP#%i (x: %f/y %f/z %f/hdg %f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
 	}

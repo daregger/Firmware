@@ -155,7 +155,6 @@ void mavlink_wpm_send_setpoint(uint16_t seq)
 {
 	if (seq < wpm->size) {
 		mavlink_mission_item_t *cur = &(wpm->waypoints[seq]);
-		//printf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX [posCTRL] BEFORE CURRENT WAYPOINT CHANGED\n");
 		//mavlink_missionlib_send_gcs_string("XXX BEFORE CURRENT WAYPOINT CHANGED\n");
 		mavlink_missionlib_current_waypoint_changed(cur->seq, cur->param1,
 				cur->param2, cur->param3, cur->param4, cur->x,

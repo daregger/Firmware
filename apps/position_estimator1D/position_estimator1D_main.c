@@ -310,7 +310,7 @@ int position_estimator1D_thread_main(int argc, char *argv[])
 			}
 			printcounter++;
 		}
-		/* now we have a fix 4 gps signal and can again zero the barometer */
+		/* now we have a fix 3 gps signal and can again zero the barometer */
 		/*local_flag_baroINITdone = false;
 		static int printcounter = 0;
 		while(!local_flag_baroINITdone){
