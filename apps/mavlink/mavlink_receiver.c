@@ -596,7 +596,7 @@ receive_thread(void *arg)
 					handle_message(&msg);
 
 					/* Handle packet with waypoint component */
-					mavlink_wpm_message_handler(&msg, &global_pos, &local_pos);
+					mavlink_wpm_message_handler(&msg, &global_pos, &local_pos, &local_sp);
 
 					/* Handle packet with parameter component */
 					mavlink_pm_message_handler(MAVLINK_COMM_0, &msg);

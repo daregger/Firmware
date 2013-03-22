@@ -421,19 +421,10 @@ multirotor_pos_control_thread_main(int argc, char *argv[]){
 				/* new global position setpoint, comming from waypoint handler */
 				orb_copy(ORB_ID(vehicle_global_position_setpoint), global_pos_sp_sub, &global_pos_sp);
 				/* map waypoint into local tangent plane */
-				map_projection_project(((double)(global_pos_sp.lat)) * 1e-7, ((double)(global_pos_sp.lon)) * 1e-7, &(z[0]), &(z[1]));
+				map_projection_project(((double)(global_pos_sp.lat)) * 1e-7f, ((double)(global_pos_sp.lon)) * 1e-7f, &(z[0]), &(z[1]));
 				/* set the new targets */
 				local_pos_sp_x_target = z[0];
 				local_pos_sp_y_target = z[1];
-				/*printf("[posCTRL] new GLOBAL sp\n");
-				mavlink_log_info(mavlink_fd, "[posCTRL] new GLOBAL sp\n");
-				printf("[posCTRL] new GLOBAL sp\n");
-				mavlink_log_info(mavlink_fd, "[posCTRL] new GLOBAL sp\n");
-				printf("[posCTRL] new GLOBAL sp\n");
-				mavlink_log_info(mavlink_fd, "[posCTRL] new GLOBAL sp\n");
-				printf("[posCTRL] new GLOBAL sp\n");
-				mavlink_log_info(mavlink_fd, "[posCTRL] new GLOBAL sp\n");
-				printf("[posCTRL] new GLOBAL sp\n");*/
 			}
 			if (fds2[0].revents & POLLIN) {
 				/* new sensor value */

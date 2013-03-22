@@ -301,6 +301,8 @@ float mavlink_wpm_distance_to_point_global_wgs84(uint16_t seq, float lat, float 
 	if (seq < wpm->size) {
 		mavlink_mission_item_t *cur = &(wpm->waypoints[seq]);
 
+		//printf("XXXXXX[posCTRL] cur.lat: %8.7f\n", (double)(cur->x));   = 47.3900
+		//printf("XXXXXX[posCTRL] lat: %8.7f\n", (double)(lat)); = 0.00
 		double current_x_rad = cur->x / 180.0 * M_PI;
 		double current_y_rad = cur->y / 180.0 * M_PI;
 		double x_rad = lat / 180.0 * M_PI;
@@ -327,23 +329,27 @@ float mavlink_wpm_distance_to_point_global_wgs84(uint16_t seq, float lat, float 
 /*
  * Calculate distance in local frame (NED)
  */
-float mavlink_wpm_distance_to_point_local(uint16_t seq, float x, float y, float z)
+float mavlink_wpm_distance_to_point_local(uint16_t seq, float local_pos_est_x, float local_pos_est_y, float local_pos_est_z, float local_pos_sp_x, float local_pos_sp_y)
 {
 	if (seq < wpm->size) {
 		mavlink_mission_item_t *cur = &(wpm->waypoints[seq]);
+		float z[2] = {0.0f, 0.0f};
+		//map_projection_project(((double)(cur->x)) * 1e-7f, ((double)(cur->y)) * 1e-7f, &(z[0]), &(z[1]));
+		//printf("XXXXXX[posCTRL] setpointx_local_plane: %8.7f\tlocal_pos_est_x %8.7f\n", (double)(cur->x), (double)(local_pos_est_x));
 
-		float dx = (cur->x - x);
-		float dy = (cur->y - y);
-		float dz = (cur->z - z);
+		float dx = (local_pos_sp_x - local_pos_est_x);
+		float dy = (local_pos_sp_y - local_pos_est_y);
+		//float dz = (cur->z - local_pos_est_z);
 
-		return sqrt(dx * dx + dy * dy + dz * dz);
+		/* not taking z yet */ //return sqrt(dx * dx + dy * dy + dz * dz);
+		return sqrt(dx * dx + dy * dy);
 
 	} else {
 		return -1.0f;
 	}
 }
 
-void check_waypoints_reached(uint64_t now, const struct vehicle_global_position_s *global_pos, struct vehicle_local_position_s *local_pos)
+void check_waypoints_reached(uint64_t now, const struct vehicle_global_position_s *global_pos, struct vehicle_local_position_s *local_pos, struct vehicle_local_position_setpoint_s *local_sp)
 {
 	static uint16_t counter;
 
@@ -352,28 +358,32 @@ void check_waypoints_reached(uint64_t now, const struct vehicle_global_position_
 	// 	printf("Currect active waypoint id: %i\n", wpm->current_active_wp_id);
 	// }
 
-
 	if (wpm->current_active_wp_id < wpm->size) {
 
 		float orbit = wpm->waypoints[wpm->current_active_wp_id].param2;
 		int coordinate_frame = wpm->waypoints[wpm->current_active_wp_id].frame;
 		float dist = -1.0f;
 
+		//printf("XXXXXX[posCTRL] local.x: %8.7f\n", (double)(local_pos->x));   shows estimated x
+		//printf("XXXXXX[posCTRL] lat: %8.7f\n", (double)(((float)(global_pos->lat))*1e-7f));  shows 0.000000
+		//printf("XXXXXX[posCTRL] local_sp->x: %8.7f\n", (double)(local_sp->x)); shows true local_setpoint
 		if (coordinate_frame == (int)MAV_FRAME_GLOBAL) {
-			dist = mavlink_wpm_distance_to_point_global_wgs84(wpm->current_active_wp_id, (float)global_pos->lat * 1e-7f, (float)global_pos->lon * 1e-7f, global_pos->alt);
-
+			//dist = mavlink_wpm_distance_to_point_global_wgs84(wpm->current_active_wp_id, (float)global_pos->lat * 1e-7f, (float)global_pos->lon * 1e-7f, global_pos->alt);
+			/* dont receive any global positioins, therefore distance in local tangent plane */
+			dist = mavlink_wpm_distance_to_point_local(wpm->current_active_wp_id, local_pos->x, local_pos->y, local_pos->z, local_sp->x, local_sp->y);
+			printf("XXXXXX[posCTRL] dist: %8.7f\n", (double)(dist));
 		} else if (coordinate_frame == (int)MAV_FRAME_GLOBAL_RELATIVE_ALT) {
 			dist = mavlink_wpm_distance_to_point_global_wgs84(wpm->current_active_wp_id, global_pos->lat, global_pos->lon, global_pos->relative_alt);
 
 		} else if (coordinate_frame == (int)MAV_FRAME_LOCAL_ENU || coordinate_frame == (int)MAV_FRAME_LOCAL_NED) {
-			dist = mavlink_wpm_distance_to_point_local(wpm->current_active_wp_id, local_pos->x, local_pos->y, local_pos->z);
+			dist = mavlink_wpm_distance_to_point_local(wpm->current_active_wp_id, local_pos->x, local_pos->y, local_pos->z, 0.0f, 0.0f);
 
 		} else if (coordinate_frame == (int)MAV_FRAME_MISSION) {
 			/* Check if conditions of mission item are satisfied */
 			// XXX TODO
 		}
 
-		if (dist >= 0.f && dist <= orbit /*&& wpm->yaw_reached*/) { //TODO implement yaw
+		if (dist >= 0.0f && dist <= orbit /*&& wpm->yaw_reached*/) { //TODO implement yaw
 			wpm->pos_reached = true;
 
 			if (counter % 100 == 0)
@@ -438,7 +448,7 @@ void check_waypoints_reached(uint64_t now, const struct vehicle_global_position_
 }
 
 
-int mavlink_waypoint_eventloop(uint64_t now, const struct vehicle_global_position_s *global_position, struct vehicle_local_position_s *local_position)
+int mavlink_waypoint_eventloop(uint64_t now, const struct vehicle_global_position_s *global_position, struct vehicle_local_position_s *local_position, struct vehicle_local_position_setpoint_s *local_position_setpoint)
 {
 	/* check for timed-out operations */
 	if (now - wpm->timestamp_lastaction > wpm->timeout && wpm->current_state != MAVLINK_WPM_STATE_IDLE) {
@@ -466,13 +476,13 @@ int mavlink_waypoint_eventloop(uint64_t now, const struct vehicle_global_positio
 	// 	mavlink_wpm_send_setpoint(wpm->current_active_wp_id);
 	// }
 
-	check_waypoints_reached(now, global_position , local_position);
+	check_waypoints_reached(now, global_position ,local_position, local_position_setpoint);
 
 	return OK;
 }
 
 
-void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehicle_global_position_s *global_pos , struct vehicle_local_position_s *local_pos)
+void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehicle_global_position_s *global_pos , struct vehicle_local_position_s *local_pos, struct vehicle_local_position_setpoint_s *local_sp)
 {
 	uint64_t now = mavlink_missionlib_get_system_timestamp();
 
@@ -1130,5 +1140,5 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 		}
 	}
 
-	check_waypoints_reached(now, global_pos, local_pos);
+	check_waypoints_reached(now, global_pos, local_pos, local_sp);
 }

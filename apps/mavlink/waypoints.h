@@ -55,6 +55,7 @@ extern mavlink_system_t mavlink_system;
 #include <stdbool.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 
 // FIXME XXX - TO BE MOVED TO XML
 enum MAVLINK_WPM_STATES {
@@ -120,9 +121,9 @@ typedef struct mavlink_wpm_storage mavlink_wpm_storage;
 
 void mavlink_wpm_init(mavlink_wpm_storage *state);
 int mavlink_waypoint_eventloop(uint64_t now, const struct vehicle_global_position_s *global_position,
-			       struct vehicle_local_position_s *local_pos);
+			       struct vehicle_local_position_s *local_pos, struct vehicle_local_position_setpoint_s *local_sp);
 void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehicle_global_position_s *global_pos ,
-				 struct vehicle_local_position_s *local_pos);
+				 struct vehicle_local_position_s *local_pos, struct vehicle_local_position_setpoint_s *local_sp);
 
 extern void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		float param2, float param3, float param4, float param5_lat_x,

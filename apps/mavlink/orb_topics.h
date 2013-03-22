@@ -93,6 +93,9 @@ extern struct vehicle_global_position_s global_pos;
 /** Local position */
 extern struct vehicle_local_position_s local_pos;
 
+/** Local position setpoint*/
+extern struct vehicle_local_position_setpoint_s local_sp;
+
 /** Vehicle status */
 extern struct vehicle_status_s v_status;
 

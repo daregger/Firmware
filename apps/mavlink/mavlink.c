@@ -717,7 +717,7 @@ int mavlink_thread_main(int argc, char *argv[])
 		usleep(25000);
 
 		/* check if waypoint has been reached against the last positions */
-		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos);
+		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &local_sp);
 
 		/* sleep quarter the time */
 		usleep(25000);

@@ -67,6 +67,7 @@ extern bool gcs_link;
 
 struct vehicle_global_position_s global_pos;
 struct vehicle_local_position_s local_pos;
+struct vehicle_local_position_setpoint_s local_sp;
 struct vehicle_status_s v_status;
 struct rc_channels_s rc;
 struct rc_input_values rc_raw;
@@ -381,7 +382,7 @@ l_global_position_setpoint(struct listener *l)
 void
 l_local_position_setpoint(struct listener *l)
 {
-	struct vehicle_local_position_setpoint_s local_sp;
+	//struct vehicle_local_position_setpoint_s local_sp;
 
 	/* copy local position data into local buffer */
 	orb_copy(ORB_ID(vehicle_local_position_setpoint), mavlink_subs.spl_sub, &local_sp);
